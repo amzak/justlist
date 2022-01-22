@@ -3,56 +3,67 @@
 #[macro_use]
 extern crate lazy_static;
 
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+
+use std::{
+    error::Error,
+    io,
+    time::{Duration, Instant},
+};
+
+use tui::{
+    backend::{Backend, CrosstermBackend},
+    layout::{Constraint, Corner, Direction, Layout},
+    style::{Color, Modifier, Style},
+    text::{Span, Spans},
+    widgets::{Block, Borders, List, ListItem, ListState},
+    Frame, Terminal,
+};
+
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-
-use cursive::event::{Event, EventTrigger};
-use cursive::event::Key;
-use cursive::theme::Effect;
-use cursive::theme::Style;
-use cursive::traits::*;
-use cursive::view::SizeConstraint;
-use cursive::views::{DummyView, EditView, LinearLayout, SelectView, TextContent, TextView};
-use cursive::Cursive;
 
 use std::fmt;
 
 #[derive(Serialize, Deserialize)]
-struct ListItem {
-    label: String,
-    param: String,
+struct SelectableItem<'a> {
+    label: &'a str,
+    param: &'a str
 }
 
-impl fmt::Display for ListItem {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<'a> fmt::Display for SelectableItem<'a> {
+    fn fmt<'b>(&self, f: &mut fmt::Formatter<'b>) -> fmt::Result {
         write!(f, "{}", self.label)
     }
 }
 
 #[derive(Serialize, Deserialize)]
-struct Group {
-    label: String,
-    items: Vec<ListItem>,
+struct Group<'a> {
+    label: &'a str,
+    items: Vec<SelectableItem<'a>>
 }
 
 #[derive(Serialize, Deserialize)]
-struct List {
-    groups: Vec<Group>,
+struct ListWithGroups<'a> {
+    #[serde(borrow)]
+    groups: Vec<Group<'a>>,
     command_template: String,
 }
 
-struct State {
+struct State<'a> {
     selected_group: usize,
-    groups: Vec<Group>,
+    groups: Vec<Group<'a>>,
     command_template: String,
 }
 
 lazy_static! {
-    static ref default_style: Style = Style::default();
-    static ref selected_style: Style = Style::from(Effect::Reverse);
 }
 
-fn sample<'a>() -> serde_json::Result<List> {
+fn sample<'a>() -> serde_json::Result<ListWithGroups<'a>> {
     let json: &'a str = r#"
     {
         "command_template": "qqq",
@@ -84,119 +95,110 @@ fn sample<'a>() -> serde_json::Result<List> {
         ]
     }"#;
 
-    let list: List = serde_json::from_str(json)?;
+    let list: ListWithGroups<'a> = serde_json::from_str(json)?;
     Ok(list)
 }
 
-fn handle_left(s: &mut Cursive) {
-    move_selected_group(s, -1);
+struct App<'a> {
+    state: ListWithGroups<'a>
 }
 
-fn move_selected_group(s: &mut Cursive, direction: i8) {
-    let mut state: State = 
-    s.take_user_data().unwrap();
+impl<'a> App<'a> {
+    fn new() -> App<'a> {
+        let sample = sample().unwrap();
 
-    let old_selected_group = state.selected_group;
-    let mut new_selected_group: i8 = state.selected_group as i8 + direction;
-    if new_selected_group == state.groups.len() as i8 || new_selected_group < 0 {
-        new_selected_group = 0;
+        App {
+            state: sample
+        }
+    }
+}
+
+fn main() -> std::io::Result<()> {
+    enable_raw_mode()?;
+
+    let mut stdout = std::io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let tick_rate = Duration::from_millis(250);
+    let app = App::new();
+    let res = run_app(&mut terminal, app, tick_rate);
+
+    disable_raw_mode()?;
+
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+
+    terminal.show_cursor()?;
+
+    if let Err(err) = res {
+        println!("{:?}", err)
     }
 
-    let old_selected_name: &str = &state.groups[old_selected_group].label;
-    let new_selected_name: &str = &state.groups[new_selected_group as usize].label;
-
-    s.call_on_name(old_selected_name, |view: &mut TextView| {
-        view.set_style(*default_style)
-    });
-
-    s.call_on_name(new_selected_name, |view: &mut TextView| {
-        view.set_style(*selected_style)
-    });
-
-    state.selected_group = new_selected_group as usize;
-
-    s.set_user_data(state);
+    Ok(())
 }
 
-fn handle_right(s: &mut Cursive) {
-    move_selected_group(s, 1);
-}
+fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>,
+    mut app: App<'_>,
+    tick_rate: Duration,
+) -> io::Result<()> {
+    let mut last_tick = Instant::now();
+    loop {
+        terminal.draw(|f| ui(f, &mut app))?;
 
-fn get_select_items(source: &Vec<ListItem>) -> Vec<(String, ListItem)> {
-    source.into_iter().map(|x| (
-        x.to_string(), 
-        ListItem {label: x.label.clone(), param: x.param.clone()})
-    ).collect()
-}
-
-fn main() {
-    cursive::logger::init();
-
-    let mut siv = cursive::default();
-    siv.load_toml(include_str!("theme.toml")).unwrap();
-
-    siv.add_global_callback('q', Cursive::quit);
-    siv.add_global_callback('~', Cursive::toggle_debug_console);
-    siv.add_global_callback(Key::Right, |s| handle_right(s));
-    siv.add_global_callback(Key::Left, |s| handle_left(s));
-
-    siv.set_autohide_menu(false);
-
-    let input = EditView::new()
-        .on_submit(on_input)
-        .with_name("input")
-        .fixed_width(10);
-
-    let List {
-        groups,
-        command_template,
-    } = sample().unwrap();
-
-    let mut groups_view = LinearLayout::horizontal();
-
-    for i in 0..groups.len() {
-        let group_label = groups[i].label.clone();
-        let content = TextContent::new(group_label.clone());
-        let style = if i == 0 {
-            *selected_style
-        } else {
-            *default_style
-        };
-        let text = TextView::new_with_content(content)
-            .style(style)
-            .with_name(group_label);
-        groups_view.add_child(text);
-        groups_view.add_child(DummyView {});
+        let timeout = tick_rate
+            .checked_sub(last_tick.elapsed())
+            .unwrap_or_else(|| Duration::from_secs(0));
+        if crossterm::event::poll(timeout)? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') => return Ok(()),
+                    // KeyCode::Left => app.items.unselect(),
+                    // KeyCode::Down => app.items.next(),
+                    // KeyCode::Up => app.items.previous(),
+                    _ => {}
+                }
+            }
+        }
+        if last_tick.elapsed() >= tick_rate {
+            last_tick = Instant::now();
+        }
     }
-
-    let items = &groups[0].items;
-
-    let select_items = get_select_items(items);
-
-    let select_view = SelectView::new()
-        .with_all(select_items)
-        .selected(0)
-        .on_submit(on_select)
-        .with_name("select")
-        .resized(SizeConstraint::Full, SizeConstraint::Full);
-
-    siv.add_fullscreen_layer(
-        LinearLayout::vertical()
-            .child(input)
-            .child(groups_view)
-            .child(select_view)
-            .child(TextView::new("q Exit")),
-    );
-
-    let state = State {
-        selected_group: 0,
-        groups: groups,
-        command_template: command_template,
-    };
-    siv.set_user_data(state);
-    siv.run();
 }
 
-fn on_select(s: &mut Cursive, item: &ListItem) {}
+fn ui<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>) {
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(f.size());
 
-fn on_input(s: &mut Cursive, input: &str) {}
+    let items: Vec<_> = app
+        .state
+        .groups
+        .iter()
+        .map(|group| {
+            ListItem::new(group.label)
+                .style(Style::default()
+                .fg(Color::Black)
+                .bg(Color::White))
+        })
+        .collect();
+
+    let items = List::new(items)
+        .block(Block::default().borders(Borders::ALL).title("List"))
+        .highlight_style(
+            Style::default()
+                .bg(Color::LightGreen)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(">> ");
+
+    let ref mut state = ListState::default();
+
+    f.render_stateful_widget(items, chunks[0], state);
+}
