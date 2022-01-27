@@ -17,10 +17,10 @@ use std::{
 
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Corner, Direction, Layout},
+    layout::{Constraint, Corner, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, ListState},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
 
@@ -149,7 +149,8 @@ impl<T> StatefulList<T> {
 struct App<'a> {
     items: StatefulList<SelectableItemModel<'a>>,
     groups: StatefulList<GroupModel<'a>>,
-    source: ListWithGroups<'a>
+    source: ListWithGroups<'a>,
+    input: String
 }
 
 impl<'a> App<'a> {
@@ -169,6 +170,7 @@ impl<'a> App<'a> {
                 .collect()
             ),
             source: sample,
+            input: String::new()
         }
     }
 }
@@ -222,6 +224,9 @@ fn run_app<B: Backend>(
                     KeyCode::Right => app.groups.previous(),
                     KeyCode::Down => app.items.next(),
                     KeyCode::Up => app.items.previous(),
+                    KeyCode::Char(c) => app.input.push(c),
+                    KeyCode::Backspace => { app.input.pop(); },
+                    KeyCode::Esc => app.input.clear(),
                     _ => {}
                 }
             }
@@ -233,15 +238,22 @@ fn run_app<B: Backend>(
 }
 
 fn ui<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>) {
-    render_list(f, app);
-}
-
-fn render_list<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>) {
     let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(1)].as_ref())
         .split(f.size());
 
+    render_input(f, app, chunks[0]);
+    render_list(f, app, chunks[1]);
+}
+
+fn render_input<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect) {
+    let input = Paragraph::new(app.input.as_ref())
+        .style(Style::default().fg(Color::Yellow));
+    f.render_widget(input, chunk);
+}
+
+fn render_list<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect) {
     let items: Vec<_> = app
         .items
         .items
@@ -263,5 +275,5 @@ fn render_list<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>) {
         )
         .highlight_symbol("> ");
 
-    f.render_stateful_widget(list, chunks[0], &mut app.items.state);
+    f.render_stateful_widget(list, chunk, &mut app.items.state);
 }
