@@ -10,7 +10,6 @@ use crossterm::{
 };
 
 use std::{
-    error::Error,
     io,
     time::{Duration, Instant},
 };
@@ -20,34 +19,31 @@ use tui::{
     layout::{Constraint, Corner, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{List, ListItem, ListState, Paragraph, Tabs},
     Frame, Terminal,
 };
 
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
-
-use std::fmt;
 
 #[derive(Serialize, Deserialize)]
 struct SelectableItem<'a> {
     label: &'a str,
-    param: &'a str
+    param: &'a str,
 }
 
 #[derive(Serialize, Deserialize)]
 struct Group<'a> {
     label: &'a str,
-    items: Vec<SelectableItem<'a>>
+    items: Vec<SelectableItem<'a>>,
 }
 
 struct SelectableItemModel<'a> {
     label: &'a str,
-    param: &'a str
+    param: &'a str,
 }
 
 struct GroupModel<'a> {
-    label: &'a str
+    label: &'a str,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -57,8 +53,7 @@ struct ListWithGroups<'a> {
     command_template: &'a str,
 }
 
-lazy_static! {
-}
+lazy_static! {}
 
 fn sample<'a>() -> serde_json::Result<ListWithGroups<'a>> {
     let json: &'a str = r#"
@@ -98,7 +93,7 @@ fn sample<'a>() -> serde_json::Result<ListWithGroups<'a>> {
 
 struct StatefulList<T> {
     state: ListState,
-    items: Vec<T>
+    items: Vec<T>,
 }
 
 impl<T> StatefulList<T> {
@@ -150,7 +145,7 @@ struct App<'a> {
     items: StatefulList<SelectableItemModel<'a>>,
     groups: StatefulList<GroupModel<'a>>,
     source: ListWithGroups<'a>,
-    input: String
+    input: String,
 }
 
 impl<'a> App<'a> {
@@ -159,18 +154,24 @@ impl<'a> App<'a> {
 
         App {
             groups: StatefulList::with_items(
-                sample.groups
-                .iter()
-                .map(|x| GroupModel { label: x.label })
-                .collect()),
+                sample
+                    .groups
+                    .iter()
+                    .map(|x| GroupModel { label: x.label })
+                    .collect(),
+            ),
             items: StatefulList::with_items(
-                sample.groups[0].items
-                .iter()
-                .map(|x| SelectableItemModel {label: x.label, param: x.param})
-                .collect()
+                sample.groups[0]
+                    .items
+                    .iter()
+                    .map(|x| SelectableItemModel {
+                        label: x.label,
+                        param: x.param,
+                    })
+                    .collect(),
             ),
             source: sample,
-            input: String::new()
+            input: String::new(),
         }
     }
 }
@@ -216,6 +217,7 @@ fn run_app<B: Backend>(
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| Duration::from_secs(0));
+
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
@@ -225,7 +227,9 @@ fn run_app<B: Backend>(
                     KeyCode::Down => app.items.next(),
                     KeyCode::Up => app.items.previous(),
                     KeyCode::Char(c) => app.input.push(c),
-                    KeyCode::Backspace => { app.input.pop(); },
+                    KeyCode::Backspace => {
+                        app.input.pop();
+                    }
                     KeyCode::Esc => app.input.clear(),
                     _ => {}
                 }
@@ -240,16 +244,41 @@ fn run_app<B: Backend>(
 fn ui<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(1)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Min(1),
+            ]
+            .as_ref(),
+        )
         .split(f.size());
 
-    render_input(f, app, chunks[0]);
-    render_list(f, app, chunks[1]);
+    render_tabs(f, app, chunks[0]);
+    render_input(f, app, chunks[1]);
+    render_list(f, app, chunks[2]);
+}
+
+fn render_tabs<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect) {
+    let groups = app
+        .groups
+        .items
+        .iter()
+        .map(|group| {
+            Spans::from(vec![Span::styled(
+                group.label,
+                Style::default().fg(Color::Yellow),
+            )])
+        })
+        .collect();
+    let tabs = Tabs::new(groups)
+        .select(app.groups.state.selected().unwrap())
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+    f.render_widget(tabs, chunk);
 }
 
 fn render_input<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect) {
-    let input = Paragraph::new(app.input.as_ref())
-        .style(Style::default().fg(Color::Yellow));
+    let input = Paragraph::new(app.input.as_ref()).style(Style::default().fg(Color::Yellow));
     f.render_widget(input, chunk);
 }
 
@@ -258,12 +287,7 @@ fn render_list<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect)
         .items
         .items
         .iter()
-        .map(|group| {
-            ListItem::new(group.label)
-                .style(Style::default()
-                .fg(Color::White)
-           )
-        })
+        .map(|group| ListItem::new(group.label).style(Style::default().fg(Color::White)))
         .collect();
 
     let list = List::new(items)
