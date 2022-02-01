@@ -1,5 +1,3 @@
-#![deny(elided_lifetimes_in_paths)]
-
 #[macro_use]
 extern crate lazy_static;
 
@@ -44,6 +42,7 @@ struct SelectableItemModel<'a> {
 
 struct GroupModel<'a> {
     label: &'a str,
+    items: StatefulList<SelectableItemModel<'a>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -142,7 +141,6 @@ impl<T> StatefulList<T> {
 }
 
 struct App<'a> {
-    items: StatefulList<SelectableItemModel<'a>>,
     groups: StatefulList<GroupModel<'a>>,
     source: ListWithGroups<'a>,
     input: String,
@@ -150,29 +148,36 @@ struct App<'a> {
 
 impl<'a> App<'a> {
     fn new() -> App<'a> {
-        let sample = sample().unwrap();
+        let sample: ListWithGroups<'a> = sample().unwrap();
 
         App {
             groups: StatefulList::with_items(
                 sample
                     .groups
                     .iter()
-                    .map(|x| GroupModel { label: x.label })
-                    .collect(),
-            ),
-            items: StatefulList::with_items(
-                sample.groups[0]
-                    .items
-                    .iter()
-                    .map(|x| SelectableItemModel {
+                    .map(|x| GroupModel {
                         label: x.label,
-                        param: x.param,
+                        items: StatefulList::with_items(
+                            sample.groups[0]
+                                .items
+                                .iter()
+                                .map(|x| SelectableItemModel {
+                                    label: x.label,
+                                    param: x.param,
+                                })
+                                .collect(),
+                        ),
                     })
                     .collect(),
             ),
             source: sample,
             input: String::new(),
         }
+    }
+
+    fn selected_group(&mut self) -> &mut GroupModel<'a> {
+        let index = self.groups.state.selected().unwrap();
+        &mut (self.groups.items[index])
     }
 }
 
@@ -207,12 +212,13 @@ fn main() -> std::io::Result<()> {
 
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
-    mut app: App<'_>,
+    mut app: App,
     tick_rate: Duration,
 ) -> io::Result<()> {
     let mut last_tick = Instant::now();
+
     loop {
-        terminal.draw(|f| ui(f, &mut app))?;
+        Terminal::draw(terminal, |f: &mut tui::Frame<B>| ui(f, &mut app))?;
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -224,8 +230,8 @@ fn run_app<B: Backend>(
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Left => app.groups.next(),
                     KeyCode::Right => app.groups.previous(),
-                    KeyCode::Down => app.items.next(),
-                    KeyCode::Up => app.items.previous(),
+                    KeyCode::Down => app.selected_group().items.next(),
+                    KeyCode::Up => app.selected_group().items.previous(),
                     KeyCode::Char(c) => app.input.push(c),
                     KeyCode::Backspace => {
                         app.input.pop();
@@ -241,7 +247,7 @@ fn run_app<B: Backend>(
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>) {
+fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -259,7 +265,7 @@ fn ui<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>) {
     render_list(f, app, chunks[2]);
 }
 
-fn render_tabs<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect) {
+fn render_tabs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
     let groups = app
         .groups
         .items
@@ -277,17 +283,18 @@ fn render_tabs<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect)
     f.render_widget(tabs, chunk);
 }
 
-fn render_input<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect) {
+fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
     let input = Paragraph::new(app.input.as_ref()).style(Style::default().fg(Color::Yellow));
     f.render_widget(input, chunk);
 }
 
-fn render_list<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect) {
+fn render_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
     let items: Vec<_> = app
+        .selected_group()
         .items
         .items
         .iter()
-        .map(|group| ListItem::new(group.label).style(Style::default().fg(Color::White)))
+        .map(|list_item| ListItem::new(list_item.label).style(Style::default().fg(Color::White)))
         .collect();
 
     let list = List::new(items)
@@ -299,5 +306,6 @@ fn render_list<B: Backend>(f: &mut Frame<'_, B>, app: &mut App<'_>, chunk: Rect)
         )
         .highlight_symbol("> ");
 
-    f.render_stateful_widget(list, chunk, &mut app.items.state);
+    let ref mut group = app.selected_group().items.state;
+    f.render_stateful_widget(list, chunk, group);
 }
