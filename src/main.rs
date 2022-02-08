@@ -6,6 +6,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use std::iter::Filter;
 
 use std::{
     io,
@@ -43,6 +44,16 @@ struct SelectableItemModel<'a> {
 struct GroupModel<'a> {
     label: &'a str,
     items: StatefulList<SelectableItemModel<'a>>,
+}
+
+impl<'a> GroupModel<'a> {
+    fn select_next(&mut self) {
+        self.items.next()
+    }
+
+    fn select_previous(&mut self) {
+        self.items.next()
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -85,7 +96,6 @@ fn sample<'a>() -> serde_json::Result<ListWithGroups<'a>> {
             }
         ]
     }"#;
-
     let list: ListWithGroups<'a> = serde_json::from_str(json)?;
     Ok(list)
 }
@@ -175,9 +185,38 @@ impl<'a> App<'a> {
         }
     }
 
-    fn selected_group(&mut self) -> &mut GroupModel<'a> {
+    fn select_group_next(&mut self) {
+        self.groups.next();
+    }
+
+    fn select_group_prev(&mut self) {
+        self.groups.previous();
+    }
+
+    fn select_item_next(&mut self) {
+        self.get_selected_group_mut().select_next()
+    }
+
+    fn select_item_prev(&mut self) {
+        self.get_selected_group_mut().select_previous();
+    }
+
+    fn get_selected_group_mut(&mut self) -> &mut GroupModel<'a> {
         let index = self.groups.state.selected().unwrap();
         &mut (self.groups.items[index])
+    }
+
+    fn get_selected_group(&self) -> &GroupModel<'a> {
+        let index = self.groups.state.selected().unwrap();
+        &(self.groups.items[index])
+    }
+
+    fn handle_char(&mut self, c: char) {
+        self.input.push(c);
+    }
+
+    fn get_input(&self) -> &str {
+        self.input.as_str()
     }
 }
 
@@ -228,11 +267,11 @@ fn run_app<B: Backend>(
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Left => app.groups.next(),
-                    KeyCode::Right => app.groups.previous(),
-                    KeyCode::Down => app.selected_group().items.next(),
-                    KeyCode::Up => app.selected_group().items.previous(),
-                    KeyCode::Char(c) => app.input.push(c),
+                    KeyCode::Left => app.select_group_next(),
+                    KeyCode::Right => app.select_group_prev(),
+                    KeyCode::Down => app.select_item_next(),
+                    KeyCode::Up => app.select_item_prev(),
+                    KeyCode::Char(c) => app.handle_char(c),
                     KeyCode::Backspace => {
                         app.input.pop();
                     }
@@ -288,12 +327,16 @@ fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
     f.render_widget(input, chunk);
 }
 
-fn render_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
-    let items: Vec<_> = app
-        .selected_group()
+fn render_list<B: Backend>(f: &mut Frame<B>, app_ref: &mut App, chunk: Rect) {
+    let query = app_ref.get_input();
+    let filter = |x: &&SelectableItemModel<'_>| x.label.contains(query);
+
+    let selected_group = app_ref.get_selected_group();
+    let items: Vec<_> = selected_group
         .items
         .items
         .iter()
+        .filter(filter)
         .map(|list_item| ListItem::new(list_item.label).style(Style::default().fg(Color::White)))
         .collect();
 
@@ -306,6 +349,6 @@ fn render_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
         )
         .highlight_symbol("> ");
 
-    let ref mut group = app.selected_group().items.state;
+    let ref mut group = app_ref.get_selected_group_mut().items.state;
     f.render_stateful_widget(list, chunk, group);
 }
