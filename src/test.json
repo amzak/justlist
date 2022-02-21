@@ -1,0 +1,31 @@
+{
+    "command_template": "qqq",
+    "groups": [
+        {
+            "label": "group 1",
+            "items": [
+                {
+                    "label": "item 1",
+                    "param": "xxx"
+                },
+                {
+                    "label": "item 2",
+                    "param": "yyy"
+                }
+            ]
+        },
+        {
+            "label": "group 2",
+            "items": [
+                {
+                    "label": "item 3",
+                    "param": "qqq"
+                },
+                {
+                    "label": "item 4",
+                    "param": "www"
+                }
+            ]
+        }
+    ]
+}

@@ -6,6 +6,8 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use std::borrow::Cow;
+use std::io::BufReader;
 use std::iter::Filter;
 
 use std::{
@@ -25,91 +27,45 @@ use tui::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-struct SelectableItem<'a> {
-    label: &'a str,
-    param: &'a str,
+struct SelectableItem {
+    label: String,
+    param: String,
 }
 
 #[derive(Serialize, Deserialize)]
-struct Group<'a> {
-    label: &'a str,
-    items: Vec<SelectableItem<'a>>,
-}
-
-struct SelectableItemModel<'a> {
-    label: &'a str,
-    param: &'a str,
-}
-
-struct GroupModel<'a> {
-    label: &'a str,
-    items: StatefulList<SelectableItemModel<'a>>,
-}
-
-impl<'a> GroupModel<'a> {
-    fn select_next(&mut self) {
-        self.items.next()
-    }
-
-    fn select_previous(&mut self) {
-        self.items.next()
-    }
+struct Group {
+    label: String,
+    items: Vec<SelectableItem>,
 }
 
 #[derive(Serialize, Deserialize)]
-struct ListWithGroups<'a> {
-    #[serde(borrow)]
-    groups: Vec<Group<'a>>,
-    command_template: &'a str,
+struct ListWithGroups {
+    groups: Vec<Group>,
+    command_template: String,
+}
+
+struct SelectableItemModel {
+    label: String,
+    param: String,
+}
+
+struct GroupModel {
+    label: String,
+    items: Vec<SelectableItemModel>,
 }
 
 lazy_static! {}
 
-fn sample<'a>() -> serde_json::Result<ListWithGroups<'a>> {
-    let json: &'a str = r#"
-    {
-        "command_template": "qqq",
-        "groups": [
-            {
-                "label": "group 1",
-                "items": [
-                {
-                    "label": "item 1",
-                    "param": "xxx"
-                },
-                {
-                    "label": "item 2",
-                    "param": "yyy"
-                }]
-            },
-            {
-                "label": "group 2",
-                "items": [
-                {
-                    "label": "item 3",
-                    "param": "qqq"
-                },
-                {
-                    "label": "item 4",
-                    "param": "www"
-                }]
-            }
-        ]
-    }"#;
-    let list: ListWithGroups<'a> = serde_json::from_str(json)?;
-    Ok(list)
-}
-
-struct StatefulList<T> {
+struct StatefulList {
     state: ListState,
-    items: Vec<T>,
+    len: usize,
 }
 
-impl<T> StatefulList<T> {
-    fn with_items(items: Vec<T>) -> StatefulList<T> {
+impl StatefulList {
+    fn from<T>(items: &Vec<T>) -> StatefulList {
         let mut result = StatefulList {
             state: ListState::default(),
-            items,
+            len: items.len(),
         };
 
         result.state.select(Some(0));
@@ -120,7 +76,7 @@ impl<T> StatefulList<T> {
     fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.items.len() - 1 {
+                if i >= self.len - 1 {
                     0
                 } else {
                     i + 1
@@ -135,7 +91,7 @@ impl<T> StatefulList<T> {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
-                    self.items.len() - 1
+                    self.len - 1
                 } else {
                     i - 1
                 }
@@ -145,70 +101,81 @@ impl<T> StatefulList<T> {
         self.state.select(Some(i));
     }
 
+    fn get_selected(&self) -> usize {
+        self.state.selected().unwrap()
+    }
+
     fn unselect(&mut self) {
         self.state.select(None);
     }
 }
 
-struct App<'a> {
-    groups: StatefulList<GroupModel<'a>>,
-    source: ListWithGroups<'a>,
-    input: String,
+struct AppModel {
+    groups: Vec<GroupModel>,
 }
 
-impl<'a> App<'a> {
-    fn new() -> App<'a> {
-        let sample: ListWithGroups<'a> = sample().unwrap();
+impl<'a> AppModel {
+    fn new<R>(reader: R) -> AppModel
+    where
+        R: std::io::Read,
+    {
+        let mut de = serde_json::Deserializer::from_reader(reader);
+        let data = ListWithGroups::deserialize(&mut de);
 
-        App {
-            groups: StatefulList::with_items(
-                sample
-                    .groups
-                    .iter()
-                    .map(|x| GroupModel {
-                        label: x.label,
-                        items: StatefulList::with_items(
-                            sample.groups[0]
+        match data {
+            Ok(content) => {
+                return AppModel {
+                    groups: content
+                        .groups
+                        .iter()
+                        .map(|x| GroupModel {
+                            label: x.label.clone(),
+                            items: x
                                 .items
                                 .iter()
                                 .map(|x| SelectableItemModel {
-                                    label: x.label,
-                                    param: x.param,
+                                    label: x.label.clone(),
+                                    param: x.param.clone(),
                                 })
                                 .collect(),
-                        ),
-                    })
-                    .collect(),
-            ),
-            source: sample,
+                        })
+                        .collect(),
+                };
+            }
+            Err(e) => {
+                panic!("can't read json state: {}", e.to_string());
+            }
+        };
+    }
+}
+
+struct State {
+    lists: Vec<StatefulList>,
+    groups: StatefulList,
+    input: String,
+}
+
+impl State {
+    fn new(items: &Vec<GroupModel>) -> State {
+        State {
+            lists: items.iter().map(|x| StatefulList::from(&x.items)).collect(),
+            groups: StatefulList::from(&items),
             input: String::new(),
         }
     }
 
-    fn select_group_next(&mut self) {
-        self.groups.next();
-    }
-
-    fn select_group_prev(&mut self) {
-        self.groups.previous();
-    }
-
     fn select_item_next(&mut self) {
-        self.get_selected_group_mut().select_next()
+        let selected_group = self.groups.get_selected();
+        self.lists[selected_group].next();
     }
 
     fn select_item_prev(&mut self) {
-        self.get_selected_group_mut().select_previous();
+        let selected_group = self.groups.get_selected();
+        self.lists[selected_group].previous();
     }
 
-    fn get_selected_group_mut(&mut self) -> &mut GroupModel<'a> {
-        let index = self.groups.state.selected().unwrap();
-        &mut (self.groups.items[index])
-    }
-
-    fn get_selected_group(&self) -> &GroupModel<'a> {
-        let index = self.groups.state.selected().unwrap();
-        &(self.groups.items[index])
+    fn get_selected_group(&self) -> usize {
+        self.groups.get_selected()
     }
 
     fn handle_char(&mut self, c: char) {
@@ -223,14 +190,18 @@ impl<'a> App<'a> {
 fn main() -> std::io::Result<()> {
     enable_raw_mode()?;
 
+    let stdin = std::io::stdin();
+    let reader = BufReader::new(stdin.lock());
+
     let mut stdout = std::io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_millis(250);
-    let app = App::new();
-    let res = run_app(&mut terminal, app, tick_rate);
+    let app = AppModel::new(reader);
+    let state = State::new(&app.groups);
+    let res = run_app(&mut terminal, app, state, tick_rate);
 
     disable_raw_mode()?;
 
@@ -251,13 +222,14 @@ fn main() -> std::io::Result<()> {
 
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
-    mut app: App,
+    app: AppModel,
+    mut state: State,
     tick_rate: Duration,
 ) -> io::Result<()> {
     let mut last_tick = Instant::now();
 
     loop {
-        Terminal::draw(terminal, |f: &mut tui::Frame<B>| ui(f, &mut app))?;
+        Terminal::draw(terminal, |f: &mut tui::Frame<B>| ui(f, &app, &mut state))?;
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -267,17 +239,18 @@ fn run_app<B: Backend>(
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Left => app.select_group_next(),
-                    KeyCode::Right => app.select_group_prev(),
-                    KeyCode::Down => app.select_item_next(),
-                    KeyCode::Up => app.select_item_prev(),
-                    KeyCode::Char(c) => app.handle_char(c),
+                    KeyCode::Left => state.groups.next(),
+                    KeyCode::Right => state.groups.previous(),
+                    KeyCode::Down => state.select_item_next(),
+                    KeyCode::Up => state.select_item_prev(),
+                    KeyCode::Char(c) => state.handle_char(c),
                     KeyCode::Backspace => {
-                        app.input.pop();
+                        state.input.pop();
                     }
-                    KeyCode::Esc => app.input.clear(),
+                    KeyCode::Esc => state.input.clear(),
                     _ => {}
                 }
+                .clone()
             }
         }
         if last_tick.elapsed() >= tick_rate {
@@ -286,7 +259,7 @@ fn run_app<B: Backend>(
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn ui<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -299,45 +272,56 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .split(f.size());
 
-    render_tabs(f, app, chunks[0]);
-    render_input(f, app, chunks[1]);
-    render_list(f, app, chunks[2]);
+    render_tabs(f, app, state, chunks[0]);
+    render_input(f, state, chunks[1]);
+    render_list(f, app, state, chunks[2]);
 }
 
-fn render_tabs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
+fn render_tabs<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, chunk: Rect) {
     let groups = app
         .groups
-        .items
         .iter()
         .map(|group| {
             Spans::from(vec![Span::styled(
-                group.label,
+                group.label.as_str(),
                 Style::default().fg(Color::Yellow),
             )])
         })
         .collect();
     let tabs = Tabs::new(groups)
-        .select(app.groups.state.selected().unwrap())
+        .select(state.get_selected_group())
         .highlight_style(Style::default().add_modifier(Modifier::BOLD));
     f.render_widget(tabs, chunk);
 }
 
-fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
-    let input = Paragraph::new(app.input.as_ref()).style(Style::default().fg(Color::Yellow));
+fn render_input<B: Backend>(f: &mut Frame<B>, state: &mut State, chunk: Rect) {
+    let input = Paragraph::new(state.input.as_str()).style(Style::default().fg(Color::Yellow));
     f.render_widget(input, chunk);
 }
 
-fn render_list<B: Backend>(f: &mut Frame<B>, app_ref: &mut App, chunk: Rect) {
-    let query = app_ref.get_input();
-    let filter = |x: &&SelectableItemModel<'_>| x.label.contains(query);
+fn render_list<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, chunk: Rect) {
+    let list = create_list(app, state);
 
-    let selected_group = app_ref.get_selected_group();
-    let items: Vec<_> = selected_group
-        .items
+    let group_index = state.get_selected_group();
+
+    let ref mut state = state.lists[group_index].state;
+
+    f.render_stateful_widget(list, chunk, state);
+}
+
+fn create_list<'b, 'a: 'b>(app: &'a AppModel, state: &State) -> List<'a> {
+    let query = state.get_input();
+    let filter = |x: &&SelectableItemModel| x.label.contains(query);
+
+    let selected_group_index = state.get_selected_group();
+
+    let items: Vec<_> = app.groups[selected_group_index]
         .items
         .iter()
         .filter(filter)
-        .map(|list_item| ListItem::new(list_item.label).style(Style::default().fg(Color::White)))
+        .map(|list_item| {
+            ListItem::new(list_item.label.as_str()).style(Style::default().fg(Color::White))
+        })
         .collect();
 
     let list = List::new(items)
@@ -349,6 +333,5 @@ fn render_list<B: Backend>(f: &mut Frame<B>, app_ref: &mut App, chunk: Rect) {
         )
         .highlight_symbol("> ");
 
-    let ref mut group = app_ref.get_selected_group_mut().items.state;
-    f.render_stateful_widget(list, chunk, group);
+    list
 }
