@@ -9,6 +9,7 @@ use crossterm::{
 use std::borrow::Cow;
 use std::io::BufReader;
 use std::iter::Filter;
+use structopt::StructOpt;
 
 use std::{
     io,
@@ -25,6 +26,8 @@ use tui::{
 };
 
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
 struct SelectableItem {
@@ -42,6 +45,12 @@ struct Group {
 struct ListWithGroups {
     groups: Vec<Group>,
     command_template: String,
+}
+
+#[derive(Debug, StructOpt)]
+struct Options {
+    #[structopt(parse(from_os_str))]
+    target: Option<PathBuf>,
 }
 
 struct SelectableItemModel {
@@ -186,12 +195,27 @@ impl State {
         self.input.as_str()
     }
 }
+fn read_app_model(options: Options) -> AppModel {
+    let app: AppModel;
+
+    if options.target.is_some() {
+        let file_path: PathBuf = options.target.unwrap();
+        let reader = BufReader::new(File::open(file_path).unwrap());
+        app = AppModel::new(reader);
+    } else {
+        let stdin = std::io::stdin();
+        let handle = stdin.lock();
+        let reader = BufReader::new(handle);
+        app = AppModel::new(reader);
+    };
+
+    app
+}
 
 fn main() -> std::io::Result<()> {
-    enable_raw_mode()?;
+    let options = Options::from_args();
 
-    let stdin = std::io::stdin();
-    let reader = BufReader::new(stdin.lock());
+    enable_raw_mode()?;
 
     let mut stdout = std::io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -199,7 +223,7 @@ fn main() -> std::io::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_millis(250);
-    let app = AppModel::new(reader);
+    let app = read_app_model(options);
     let state = State::new(&app.groups);
     let res = run_app(&mut terminal, app, state, tick_rate);
 
