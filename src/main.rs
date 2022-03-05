@@ -6,9 +6,8 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::borrow::Cow;
+
 use std::io::BufReader;
-use std::iter::Filter;
 use structopt::StructOpt;
 
 use std::{
@@ -21,180 +20,27 @@ use tui::{
     layout::{Constraint, Corner, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{List, ListItem, ListState, Paragraph, Tabs},
+    widgets::{List, ListItem, Paragraph, Tabs},
     Frame, Terminal,
 };
 
-use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-#[derive(Serialize, Deserialize)]
-struct SelectableItem {
-    label: String,
-    param: String,
-}
+mod app;
+use app::{
+    domain::GroupModel, domain::SelectableItemModel, model::AppModel, state::State,
+    stateful::StatefulList,
+};
 
-#[derive(Serialize, Deserialize)]
-struct Group {
-    label: String,
-    items: Vec<SelectableItem>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct ListWithGroups {
-    groups: Vec<Group>,
-    command_template: String,
-}
+lazy_static! {}
 
 #[derive(Debug, StructOpt)]
-struct Options {
+pub struct Options {
     #[structopt(parse(from_os_str))]
     target: Option<PathBuf>,
 }
 
-struct SelectableItemModel {
-    label: String,
-    param: String,
-}
-
-struct GroupModel {
-    label: String,
-    items: Vec<SelectableItemModel>,
-}
-
-lazy_static! {}
-
-struct StatefulList {
-    state: ListState,
-    len: usize,
-}
-
-impl StatefulList {
-    fn from<T>(items: &Vec<T>) -> StatefulList {
-        let mut result = StatefulList {
-            state: ListState::default(),
-            len: items.len(),
-        };
-
-        result.state.select(Some(0));
-
-        result
-    }
-
-    fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.len - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.len - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    fn get_selected(&self) -> usize {
-        self.state.selected().unwrap()
-    }
-
-    fn unselect(&mut self) {
-        self.state.select(None);
-    }
-}
-
-struct AppModel {
-    groups: Vec<GroupModel>,
-}
-
-impl<'a> AppModel {
-    fn new<R>(reader: R) -> AppModel
-    where
-        R: std::io::Read,
-    {
-        let mut de = serde_json::Deserializer::from_reader(reader);
-        let data = ListWithGroups::deserialize(&mut de);
-
-        match data {
-            Ok(content) => {
-                return AppModel {
-                    groups: content
-                        .groups
-                        .iter()
-                        .map(|x| GroupModel {
-                            label: x.label.clone(),
-                            items: x
-                                .items
-                                .iter()
-                                .map(|x| SelectableItemModel {
-                                    label: x.label.clone(),
-                                    param: x.param.clone(),
-                                })
-                                .collect(),
-                        })
-                        .collect(),
-                };
-            }
-            Err(e) => {
-                panic!("can't read json state: {}", e.to_string());
-            }
-        };
-    }
-}
-
-struct State {
-    lists: Vec<StatefulList>,
-    groups: StatefulList,
-    input: String,
-}
-
-impl State {
-    fn new(items: &Vec<GroupModel>) -> State {
-        State {
-            lists: items.iter().map(|x| StatefulList::from(&x.items)).collect(),
-            groups: StatefulList::from(&items),
-            input: String::new(),
-        }
-    }
-
-    fn select_item_next(&mut self) {
-        let selected_group = self.groups.get_selected();
-        self.lists[selected_group].next();
-    }
-
-    fn select_item_prev(&mut self) {
-        let selected_group = self.groups.get_selected();
-        self.lists[selected_group].previous();
-    }
-
-    fn get_selected_group(&self) -> usize {
-        self.groups.get_selected()
-    }
-
-    fn handle_char(&mut self, c: char) {
-        self.input.push(c);
-    }
-
-    fn get_input(&self) -> &str {
-        self.input.as_str()
-    }
-}
 fn read_app_model(options: Options) -> AppModel {
     let app: AppModel;
 
