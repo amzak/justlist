@@ -114,10 +114,8 @@ fn run_app<B: Backend>(
                     KeyCode::Down => state.select_item_next(),
                     KeyCode::Up => state.select_item_prev(),
                     KeyCode::Char(c) => state.handle_char(c),
-                    KeyCode::Backspace => {
-                        state.input.pop();
-                    }
-                    KeyCode::Esc => state.input.clear(),
+                    KeyCode::Backspace => state.handle_backspace(),
+                    KeyCode::Esc => state.handle_escape(),
                     _ => {}
                 }
                 .clone()
@@ -165,8 +163,9 @@ fn render_tabs<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, 
 }
 
 fn render_input<B: Backend>(f: &mut Frame<B>, state: &mut State, chunk: Rect) {
-    let input = Paragraph::new(state.input.as_str()).style(Style::default().fg(Color::Yellow));
-    f.render_widget(input, chunk);
+    let input = state.get_input();
+    let paragraph = Paragraph::new(input).style(Style::default().fg(Color::Yellow));
+    f.render_widget(paragraph, chunk);
 }
 
 fn render_list<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, chunk: Rect) {

@@ -3,7 +3,7 @@ use crate::{GroupModel, StatefulList};
 pub struct State {
     pub lists: Vec<StatefulList>,
     pub groups: StatefulList,
-    pub input: String,
+    input: String,
 }
 
 impl State {
@@ -35,5 +35,13 @@ impl State {
 
     pub fn get_input(&self) -> &str {
         self.input.as_str()
+    }
+
+    pub fn handle_backspace(&mut self) {
+        self.input.pop();
+    }
+
+    pub fn handle_escape(&mut self) {
+        self.input.clear()
     }
 }
