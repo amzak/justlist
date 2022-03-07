@@ -116,6 +116,7 @@ fn run_app<B: Backend>(
                     KeyCode::Char(c) => state.handle_char(c),
                     KeyCode::Backspace => state.handle_backspace(),
                     KeyCode::Esc => state.handle_escape(),
+                    KeyCode::Enter => app.handle_enter(&state),
                     _ => {}
                 }
                 .clone()

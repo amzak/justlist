@@ -1,10 +1,13 @@
 use crate::app::serialization::ListWithGroups;
+use crate::State;
 use serde::Deserialize;
+use std::process::Command;
 
 use super::domain::{GroupModel, SelectableItemModel};
 
 pub struct AppModel {
     pub groups: Vec<GroupModel>,
+    pub command_template: String,
 }
 
 impl<'a> AppModel {
@@ -33,11 +36,27 @@ impl<'a> AppModel {
                                 .collect(),
                         })
                         .collect(),
+                    command_template: content.command_template,
                 };
             }
             Err(e) => {
                 panic!("can't read json state: {}", e.to_string());
             }
         };
+    }
+
+    pub fn handle_enter(&self, state: &State) {
+        let selected_group_index = state.get_selected_group();
+        let selected_list = &state.lists[selected_group_index];
+        let selected_item_index = selected_list.get_selected();
+
+        let selected_item_model = &self.groups[selected_group_index].items[selected_item_index];
+
+        let command = self
+            .command_template
+            .replace("{param}", selected_item_model.param.as_str());
+
+        let error = format!("failed to execute {}", command);
+        Command::new(command).output().expect(&error);
     }
 }

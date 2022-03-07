@@ -1,12 +1,12 @@
 {
-    "command_template": "qqq",
+    "command_template": "xed {param}",
     "groups": [
         {
             "label": "group 1",
             "items": [
                 {
                     "label": "item 1",
-                    "param": "xxx"
+                    "param": "test.json"
                 },
                 {
                     "label": "item 2",
