@@ -1,6 +1,7 @@
 use crate::app::serialization::ListWithGroups;
 use crate::State;
 use serde::Deserialize;
+use std::io::Write;
 use std::process::Command;
 
 use super::domain::{GroupModel, SelectableItemModel};
@@ -45,7 +46,7 @@ impl<'a> AppModel {
         };
     }
 
-    pub fn handle_enter(&self, state: &State) {
+    pub fn handle_enter(&self, state: &State) -> std::io::Result<(std::process::Output)> {
         let selected_group_index = state.get_selected_group();
         let selected_list = &state.lists[selected_group_index];
         let selected_item_index = selected_list.get_selected();
@@ -57,6 +58,6 @@ impl<'a> AppModel {
             .replace("{param}", selected_item_model.param.as_str());
 
         let error = format!("failed to execute {}", command);
-        Command::new(command).output().expect(&error);
+        return Command::new(command).output();
     }
 }

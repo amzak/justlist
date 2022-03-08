@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
+use crate::terminal::TerminalState;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -33,6 +34,8 @@ use app::{
     stateful::StatefulList,
 };
 
+mod terminal;
+
 lazy_static! {}
 
 #[derive(Debug, StructOpt)]
@@ -61,30 +64,15 @@ fn read_app_model(options: Options) -> AppModel {
 fn main() -> std::io::Result<()> {
     let options = Options::from_args();
 
-    enable_raw_mode()?;
-
-    let mut stdout = std::io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let mut terminal_state = TerminalState::new();
 
     let tick_rate = Duration::from_millis(250);
     let app = read_app_model(options);
     let state = State::new(&app.groups);
-    let res = run_app(&mut terminal, app, state, tick_rate);
-
-    disable_raw_mode()?;
-
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-
-    terminal.show_cursor()?;
+    let res = run_app(&mut terminal_state.terminal, app, state, tick_rate);
 
     if let Err(err) = res {
-        println!("{:?}", err)
+        terminal_state.error(&err.to_string());
     }
 
     Ok(())
@@ -116,7 +104,13 @@ fn run_app<B: Backend>(
                     KeyCode::Char(c) => state.handle_char(c),
                     KeyCode::Backspace => state.handle_backspace(),
                     KeyCode::Esc => state.handle_escape(),
-                    KeyCode::Enter => app.handle_enter(&state),
+                    KeyCode::Enter => {
+                        let result = app.handle_enter(&state);
+                        match result {
+                            Ok(_) => return Ok(()),
+                            Err(error) => return Err(error),
+                        }
+                    }
                     _ => {}
                 }
                 .clone()
