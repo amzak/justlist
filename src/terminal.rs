@@ -29,6 +29,12 @@ impl TerminalState {
     pub fn error(&mut self, err: &str) {
         self.errors.push(String::from(err));
     }
+
+    fn print_errors(&self) {
+        for error in self.errors.iter() {
+            eprintln!("{}", error);
+        }
+    }
 }
 
 impl Drop for TerminalState {
@@ -42,5 +48,7 @@ impl Drop for TerminalState {
         );
 
         self.terminal.show_cursor();
+
+        self.print_errors();
     }
 }
