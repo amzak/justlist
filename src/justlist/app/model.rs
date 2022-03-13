@@ -1,7 +1,6 @@
 use crate::app::serialization::ListWithGroups;
 use crate::State;
 use serde::Deserialize;
-use std::io::Write;
 use std::process::Command;
 
 use super::domain::{GroupModel, SelectableItemModel};

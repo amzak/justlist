@@ -2,11 +2,7 @@
 extern crate lazy_static;
 
 use crate::terminal::TerminalState;
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
+use crossterm::event::{self, Event, KeyCode};
 
 use std::io::BufReader;
 use structopt::StructOpt;
@@ -17,7 +13,7 @@ use std::{
 };
 
 use tui::{
-    backend::{Backend, CrosstermBackend},
+    backend::Backend,
     layout::{Constraint, Corner, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
