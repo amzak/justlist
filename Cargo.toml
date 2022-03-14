@@ -5,7 +5,12 @@ edition = "2021"
 
 [[bin]]
 name = "justlist"
-path = "src/justlist/main.rs"
+path = "src/main.rs"
+
+[[bin]]
+name = "search"
+path = "src/plugins/search/main.rs"
+# required-features = ["derive"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,3 +22,4 @@ serde_json = "1.0"
 log = "*"
 lazy_static = "*"
 structopt = "*"
+walkdir = "*"

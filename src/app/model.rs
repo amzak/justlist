@@ -1,4 +1,3 @@
-use crate::app::serialization::ListWithGroups;
 use crate::State;
 use serde::Deserialize;
 use std::process::Command;
