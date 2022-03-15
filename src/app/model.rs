@@ -1,8 +1,8 @@
+use super::domain::{GroupModel, SelectableItemModel};
 use crate::State;
 use serde::Deserialize;
+use shared::serialization::ListWithGroups;
 use std::process::Command;
-
-use super::domain::{GroupModel, SelectableItemModel};
 
 pub struct AppModel {
     pub groups: Vec<GroupModel>,
@@ -51,11 +51,8 @@ impl<'a> AppModel {
 
         let selected_item_model = &self.groups[selected_group_index].items[selected_item_index];
 
-        let command = self
-            .command_template
-            .replace("{param}", selected_item_model.param.as_str());
+        let param = selected_item_model.param.as_str();
 
-        let error = format!("failed to execute {}", command);
-        return Command::new(command).output();
+        return Command::new(&self.command_template).arg(param).output();
     }
 }
