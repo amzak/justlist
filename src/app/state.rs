@@ -4,6 +4,7 @@ pub struct State {
     pub lists: Vec<StatefulList>,
     pub groups: StatefulList,
     input: String,
+    input_changed: bool,
 }
 
 impl State {
@@ -12,6 +13,7 @@ impl State {
             lists: items.iter().map(|x| StatefulList::from(&x.items)).collect(),
             groups: StatefulList::from(&items),
             input: String::new(),
+            input_changed: false,
         }
     }
 
@@ -31,17 +33,28 @@ impl State {
 
     pub fn handle_char(&mut self, c: char) {
         self.input.push(c);
+        self.input_changed = true;
     }
 
-    pub fn get_input(&self) -> &str {
+    pub fn dump_input(&self) -> &str {
         self.input.as_str()
     }
 
     pub fn handle_backspace(&mut self) {
         self.input.pop();
+        self.input_changed = true;
     }
 
     pub fn handle_escape(&mut self) {
-        self.input.clear()
+        self.input.clear();
+        self.input_changed = true;
+    }
+
+    pub fn was_input_changed(&self) -> bool {
+        self.input_changed
+    }
+
+    pub fn reset_input_changed(&mut self) {
+        self.input_changed = false;
     }
 }

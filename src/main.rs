@@ -154,7 +154,7 @@ fn render_tabs<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, 
 }
 
 fn render_input<B: Backend>(f: &mut Frame<B>, state: &mut State, chunk: Rect) {
-    let input = state.get_input();
+    let input = state.dump_input();
     let paragraph = Paragraph::new(input).style(Style::default().fg(Color::Yellow));
     f.render_widget(paragraph, chunk);
 }
@@ -163,14 +163,20 @@ fn render_list<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, 
     let list = create_list(app, state);
 
     let group_index = state.get_selected_group();
+    let input_was_changed = state.was_input_changed();
+    state.reset_input_changed();
 
-    let ref mut state = state.lists[group_index].state;
+    let ref mut list_state = state.lists[group_index].state;
 
-    f.render_stateful_widget(list, chunk, state);
+    if input_was_changed {
+        list_state.select(Some(0));
+    }
+
+    f.render_stateful_widget(list, chunk, list_state);
 }
 
 fn create_list<'b, 'a: 'b>(app: &'a AppModel, state: &State) -> List<'a> {
-    let query = state.get_input();
+    let query = state.dump_input();
     let filter = |x: &&SelectableItemModel| x.label.contains(query);
 
     let selected_group_index = state.get_selected_group();

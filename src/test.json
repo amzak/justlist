@@ -1,31 +1,226 @@
 {
-    "command_template": "xed {param}",
     "groups": [
         {
-            "label": "group 1",
+            "label": "files",
             "items": [
                 {
-                    "label": "item 1",
-                    "param": "test.json"
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/mod.rs"
                 },
                 {
-                    "label": "item 2",
-                    "param": "yyy"
-                }
-            ]
-        },
-        {
-            "label": "group 2",
-            "items": [
-                {
-                    "label": "item 3",
-                    "param": "qqq"
+                    "label": "serialization.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/serialization.rs"
                 },
                 {
-                    "label": "item 4",
-                    "param": "www"
+                    "label": "terminal.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/terminal.rs"
+                },
+                {
+                    "label": "main.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/main.rs"
+                },
+                {
+                    "label": "stateful.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/stateful.rs"
+                },
+                {
+                    "label": "model.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/model.rs"
+                },
+                {
+                    "label": "domain.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/domain.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/mod.rs"
+                },
+                {
+                    "label": "state.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/state.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/mod.rs"
+                },
+                {
+                    "label": "serialization.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/serialization.rs"
+                },
+                {
+                    "label": "terminal.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/terminal.rs"
+                },
+                {
+                    "label": "main.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/main.rs"
+                },
+                {
+                    "label": "stateful.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/stateful.rs"
+                },
+                {
+                    "label": "model.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/model.rs"
+                },
+                {
+                    "label": "domain.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/domain.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/mod.rs"
+                },
+                {
+                    "label": "state.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/state.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/mod.rs"
+                },
+                {
+                    "label": "serialization.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/serialization.rs"
+                },
+                {
+                    "label": "terminal.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/terminal.rs"
+                },
+                {
+                    "label": "main.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/main.rs"
+                },
+                {
+                    "label": "stateful.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/stateful.rs"
+                },
+                {
+                    "label": "model.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/model.rs"
+                },
+                {
+                    "label": "domain.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/domain.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/mod.rs"
+                },
+                {
+                    "label": "state.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/state.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/mod.rs"
+                },
+                {
+                    "label": "serialization.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/serialization.rs"
+                },
+                {
+                    "label": "terminal.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/terminal.rs"
+                },
+                {
+                    "label": "main.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/main.rs"
+                },
+                {
+                    "label": "stateful.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/stateful.rs"
+                },
+                {
+                    "label": "model.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/model.rs"
+                },
+                {
+                    "label": "domain.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/domain.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/mod.rs"
+                },
+                {
+                    "label": "state.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/state.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/mod.rs"
+                },
+                {
+                    "label": "serialization.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/serialization.rs"
+                },
+                {
+                    "label": "terminal.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/terminal.rs"
+                },
+                {
+                    "label": "main.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/main.rs"
+                },
+                {
+                    "label": "stateful.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/stateful.rs"
+                },
+                {
+                    "label": "model.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/model.rs"
+                },
+                {
+                    "label": "domain.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/domain.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/mod.rs"
+                },
+                {
+                    "label": "state.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/state.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/mod.rs"
+                },
+                {
+                    "label": "serialization.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/shared/serialization.rs"
+                },
+                {
+                    "label": "terminal.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/terminal.rs"
+                },
+                {
+                    "label": "main.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/main.rs"
+                },
+                {
+                    "label": "stateful.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/stateful.rs"
+                },
+                {
+                    "label": "model.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/model.rs"
+                },
+                {
+                    "label": "domain.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/domain.rs"
+                },
+                {
+                    "label": "mod.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/mod.rs"
+                },
+                {
+                    "label": "state.rs",
+                    "param": "/home/amzak/projects/rust/justlist/src/app/state.rs"
                 }
             ]
         }
-    ]
+    ],
+    "command_template": "xed"
 }
