@@ -1,0 +1,58 @@
+name: Rust
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        target: [ "linux-x64", "win-x64" ]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Git semver
+      uses: paulhatch/semantic-version@v4.0.3
+      id: semver
+      with:
+        tag_prefix: "v"
+        major_pattern: "(MAJOR)"
+        minor_pattern: "(MINOR)"
+        format: "${major}.${minor}.${patch}-${increment}"
+        short_tags: true
+        bump_each_commit: false
+    - name: Show current version
+      run: |
+        echo 'Building version ${{steps.semver.outputs.version}}'        
+    - name: Build
+      run: cargo build --verbose --release
+    - name: Run tests
+      run: cargo test --verbose
+    - name: Zip artifacts
+      uses: papeloto/action-zip@v1
+      with:
+        files: target/release/justlist target/release/search
+        dest: release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: release_${{matrix.target}}
+        path: |
+          release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
+        if-no-files-found: error
+    - name: Release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Development Build"
+        files: |
+          release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
