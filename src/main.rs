@@ -7,11 +7,6 @@ use crossterm::event::{self, Event, KeyCode};
 use std::io::BufReader;
 use structopt::StructOpt;
 
-use std::{
-    io,
-    time::{Duration, Instant},
-};
-
 use tui::{
     backend::Backend,
     layout::{Constraint, Corner, Direction, Layout, Rect},
@@ -62,10 +57,9 @@ fn main() -> std::io::Result<()> {
 
     let mut terminal_state = TerminalState::new();
 
-    let tick_rate = Duration::from_millis(250);
     let app = read_app_model(options);
     let state = State::new(&app.groups);
-    let res = run_app(&mut terminal_state.terminal, app, state, tick_rate);
+    let res = run_app(&mut terminal_state.terminal, app, state);
 
     if let Err(err) = res {
         terminal_state.error(&err.to_string());
@@ -78,42 +72,30 @@ fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     app: AppModel,
     mut state: State,
-    tick_rate: Duration,
-) -> io::Result<()> {
-    let mut last_tick = Instant::now();
-
+) -> std::io::Result<()> {
     loop {
         Terminal::draw(terminal, |f: &mut tui::Frame<B>| ui(f, &app, &mut state))?;
 
-        let timeout = tick_rate
-            .checked_sub(last_tick.elapsed())
-            .unwrap_or_else(|| Duration::from_secs(0));
-
-        if crossterm::event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Left => state.groups.next(),
-                    KeyCode::Right => state.groups.previous(),
-                    KeyCode::Down => state.select_item_next(),
-                    KeyCode::Up => state.select_item_prev(),
-                    KeyCode::Char(c) => state.handle_char(c),
-                    KeyCode::Backspace => state.handle_backspace(),
-                    KeyCode::Esc => state.handle_escape(),
-                    KeyCode::Enter => {
-                        let result = app.handle_enter(&state);
-                        match result {
-                            Ok(_) => return Ok(()),
-                            Err(error) => return Err(error),
-                        }
+        if let Event::Key(key) = event::read()? {
+            match key.code {
+                KeyCode::Char('q') => return Ok(()),
+                KeyCode::Left => state.groups.next(),
+                KeyCode::Right => state.groups.previous(),
+                KeyCode::Down => state.select_item_next(),
+                KeyCode::Up => state.select_item_prev(),
+                KeyCode::Char(c) => state.handle_char(c),
+                KeyCode::Backspace => state.handle_backspace(),
+                KeyCode::Esc => state.handle_escape(),
+                KeyCode::Enter => {
+                    let result = app.handle_enter(&state);
+                    match result {
+                        Ok(_) => return Ok(()),
+                        Err(error) => return Err(error),
                     }
-                    _ => {}
                 }
-                .clone()
+                _ => {}
             }
-        }
-        if last_tick.elapsed() >= tick_rate {
-            last_tick = Instant::now();
+            .clone()
         }
     }
 }
