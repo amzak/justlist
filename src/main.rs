@@ -142,11 +142,11 @@ fn render_input<B: Backend>(f: &mut Frame<B>, state: &mut State, chunk: Rect) {
 }
 
 fn render_list<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, chunk: Rect) {
-    let list = create_list(app, state);
-
     let group_index = state.get_selected_group();
     let input_was_changed = state.was_input_changed();
-    state.reset_input_changed();
+    state.reset();
+
+    let list = create_list(app, state);
 
     let ref mut list_state = state.lists[group_index].state;
 
@@ -157,22 +157,25 @@ fn render_list<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, 
     f.render_stateful_widget(list, chunk, list_state);
 }
 
-fn create_list<'b, 'a: 'b>(app: &'a AppModel, state: &State) -> List<'a> {
-    let query = state.dump_input();
-    let filter = |x: &&SelectableItemModel| x.label.contains(query);
-
+fn create_list<'b, 'a: 'b>(app: &'a AppModel, state: &'b mut State) -> List<'a> {
     let selected_group_index = state.get_selected_group();
+    let list = &app.groups[selected_group_index].items;
+    let mut list_items: Vec<ListItem> = Vec::with_capacity(list.len());
 
-    let items: Vec<_> = app.groups[selected_group_index]
-        .items
-        .iter()
-        .filter(filter)
-        .map(|list_item| {
-            ListItem::new(list_item.label.as_str()).style(Style::default().fg(Color::White))
-        })
-        .collect();
+    let mut index = 0;
+    for item in list {
+        if !item.label.contains(state.dump_input()) {
+            continue;
+        }
 
-    let list = List::new(items)
+        let list_item = ListItem::new(item.label.as_str()).style(Style::default().fg(Color::White));
+
+        list_items.push(list_item);
+        state.map_index(item.index, index);
+        index += 1;
+    }
+
+    let list = List::new(list_items)
         .start_corner(Corner::TopLeft)
         .highlight_style(
             Style::default()

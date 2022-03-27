@@ -1,4 +1,5 @@
 pub struct SelectableItemModel {
+    pub index: usize,
     pub label: String,
     pub param: String,
 }
