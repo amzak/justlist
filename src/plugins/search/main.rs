@@ -15,6 +15,8 @@ struct Options {
     depth: u8,
     #[structopt(long, short, parse(from_os_str))]
     working_dir: Option<PathBuf>,
+    #[structopt(long, short)]
+    title: Option<String>,
 }
 
 fn main() -> std::io::Result<()> {
@@ -28,8 +30,14 @@ fn main() -> std::io::Result<()> {
         command_template: options.command_template,
     };
 
+    let title = if options.title.is_some() {
+        options.title.unwrap()
+    } else {
+        "files".to_string()
+    };
+
     let mut group = Group {
-        label: "files".to_string(),
+        label: title,
         items: vec![],
     };
 
