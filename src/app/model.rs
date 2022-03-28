@@ -31,7 +31,7 @@ impl<'a> AppModel {
                                 .iter()
                                 .enumerate()
                                 .map(|(index, x)| SelectableItemModel {
-                                    label: x.label.clone(),
+                                    label: x.label.to_lowercase(),
                                     param: x.param.clone(),
                                     index: index,
                                 })
