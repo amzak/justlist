@@ -2,12 +2,39 @@ use shared::serialization::*;
 use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
+use std::str::FromStr;
 use structopt::StructOpt;
+use walkdir::DirEntry;
 use walkdir::WalkDir;
+
+#[derive(Debug)]
+enum SearchType {
+    FileType,
+    FileName,
+    Directory,
+}
+
+type ParseError = &'static str;
+
+impl FromStr for SearchType {
+    type Err = ParseError;
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "type" => Ok(SearchType::FileType),
+            "filetype" => Ok(SearchType::FileType),
+            "name" => Ok(SearchType::FileName),
+            "filename" => Ok(SearchType::FileName),
+            "file" => Ok(SearchType::FileName),
+            "directory" => Ok(SearchType::Directory),
+            _ => Err("not supported"),
+        }
+    }
+}
 
 #[derive(Debug, StructOpt)]
 struct Options {
-    extension: String,
+    search_type: SearchType,
+    target: String,
     command_template: String,
     #[structopt(long, short)]
     verbose: bool,
@@ -51,20 +78,8 @@ fn main() -> std::io::Result<()> {
 
         let dir_item = item.unwrap();
         let path = dir_item.path();
-        let extension = path.extension();
 
-        if path.is_dir() {
-            continue;
-        }
-
-        if extension.is_none() {
-            continue;
-        }
-
-        let ext = extension.unwrap();
-        let filter_ext = OsStr::new(&options.extension);
-
-        if filter_ext == ext {
+        if is_match(&dir_item, &options.target, &options.search_type) {
             let file_name = path.file_name().unwrap();
             let file_path = path.to_str().unwrap();
 
@@ -83,4 +98,26 @@ fn main() -> std::io::Result<()> {
     serde_json::to_writer(writer, &list)?;
 
     Ok(())
+}
+
+fn is_match(dir_entry: &DirEntry, target: &str, search_type: &SearchType) -> bool {
+    if search_type == SearchType::FileType {
+        unimplemented!();
+    }
+
+    let path = dir_entry.path();
+    let extension = path.extension();
+
+    if path.is_dir() {
+        return false;
+    }
+
+    if extension.is_none() {
+        return false;
+    }
+
+    let ext = extension.unwrap();
+    let filter_ext = OsStr::new(target);
+
+    filter_ext == ext
 }
