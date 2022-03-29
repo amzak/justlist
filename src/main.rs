@@ -3,6 +3,7 @@ extern crate lazy_static;
 
 use crate::terminal::TerminalState;
 use crossterm::event::{self, Event, KeyCode};
+use std::time::Duration;
 
 use std::io::BufReader;
 use structopt::StructOpt;
@@ -89,7 +90,19 @@ fn run_app<B: Backend>(
                 KeyCode::Enter => {
                     let result = app.handle_enter(&state);
                     match result {
-                        Ok(_) => return Ok(()),
+                        Ok(mut child) => {
+                            match child.try_wait() {
+                                Ok(Some(status)) => {
+                                    println!("child process exited with: {}", status)
+                                }
+                                Ok(None) => {
+                                    println!("no status yet");
+                                    std::thread::sleep(Duration::from_secs(1));
+                                }
+                                Err(e) => return Err(e),
+                            }
+                            return Ok(());
+                        }
                         Err(error) => return Err(error),
                     }
                 }
