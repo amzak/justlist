@@ -3,7 +3,7 @@ extern crate lazy_static;
 
 use crate::terminal::TerminalState;
 use crossterm::event::{self, Event, KeyCode};
-use std::time::Duration;
+use std::io::{Error, ErrorKind};
 
 use std::io::BufReader;
 use structopt::StructOpt;
@@ -55,31 +55,31 @@ fn read_app_model(options: Options) -> AppModel {
 
 fn main() -> std::io::Result<()> {
     let options = Options::from_args();
-
-    let mut terminal_state = TerminalState::new();
-
     let app = read_app_model(options);
-    let state = State::new(&app.groups);
-    let res = run_app(&mut terminal_state.terminal, app, state);
 
-    if let Err(err) = res {
-        terminal_state.error(&err.to_string());
-    }
+    _main(app);
 
     Ok(())
+}
+
+fn _main(app: AppModel) {
+    let mut terminal_state = TerminalState::new();
+    let state = State::new(&app.groups);
+    let result = run_app(&mut terminal_state.terminal, app, state).unwrap();
+    terminal_state.output(&result);
 }
 
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     app: AppModel,
     mut state: State,
-) -> std::io::Result<()> {
+) -> std::io::Result<String> {
     loop {
         Terminal::draw(terminal, |f: &mut tui::Frame<B>| ui(f, &app, &mut state))?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {
-                KeyCode::Char('q') => return Ok(()),
+                KeyCode::Char('q') => return Ok(String::from("OK.")),
                 KeyCode::Left => state.groups.next(),
                 KeyCode::Right => state.groups.previous(),
                 KeyCode::Down => state.select_item_next(),
@@ -88,27 +88,14 @@ fn run_app<B: Backend>(
                 KeyCode::Backspace => state.handle_backspace(),
                 KeyCode::Esc => state.handle_escape(),
                 KeyCode::Enter => {
-                    let result = app.handle_enter(&state);
-                    match result {
-                        Ok(mut child) => {
-                            match child.try_wait() {
-                                Ok(Some(status)) => {
-                                    println!("child process exited with: {}", status)
-                                }
-                                Ok(None) => {
-                                    println!("no status yet");
-                                    std::thread::sleep(Duration::from_secs(1));
-                                }
-                                Err(e) => return Err(e),
-                            }
-                            return Ok(());
-                        }
-                        Err(error) => return Err(error),
+                    if let Err(error) = app.handle_enter(&state) {
+                        let err = Error::new(ErrorKind::Other, error);
+                        return Err(err);
                     }
+                    return Ok(String::from("OK."));
                 }
-                _ => {}
+                _ => return Ok(String::from("OK.")),
             }
-            .clone()
         }
     }
 }

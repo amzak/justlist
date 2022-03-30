@@ -9,7 +9,7 @@ use tui::Terminal;
 
 pub struct TerminalState {
     pub terminal: Terminal<CrosstermBackend<std::io::Stdout>>,
-    errors: Vec<String>,
+    output: Vec<String>,
 }
 
 impl TerminalState {
@@ -22,17 +22,17 @@ impl TerminalState {
 
         TerminalState {
             terminal: terminal.unwrap(),
-            errors: vec![],
+            output: vec![],
         }
     }
 
-    pub fn error(&mut self, err: &str) {
-        self.errors.push(String::from(err));
+    pub fn output(&mut self, output: &str) {
+        self.output.push(String::from(output));
     }
 
-    fn print_errors(&self) {
-        for error in self.errors.iter() {
-            eprintln!("{}", error);
+    fn print_output(&self) {
+        for output in self.output.iter() {
+            print!("{}", output);
         }
     }
 }
@@ -49,6 +49,6 @@ impl Drop for TerminalState {
 
         self.terminal.show_cursor();
 
-        self.print_errors();
+        self.print_output();
     }
 }

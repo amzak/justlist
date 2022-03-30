@@ -12,6 +12,10 @@ name = "search"
 path = "src/plugins/search/main.rs"
 # required-features = ["derive"]
 
+[[bin]]
+name = "launcher"
+path = "src/plugins/launcher/main.rs"
+
 [lib]
 name = "shared"
 path = "src/shared/mod.rs"
@@ -27,3 +31,4 @@ log = "*"
 lazy_static = "*"
 structopt = "*"
 walkdir = "*"
+nix = "*"

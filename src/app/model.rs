@@ -2,8 +2,9 @@ use super::domain::{GroupModel, SelectableItemModel};
 use crate::State;
 use serde::Deserialize;
 use shared::serialization::ListWithGroups;
-use std::process::Child;
+use std::env;
 use std::process::Command;
+use std::process::Stdio;
 
 pub struct AppModel {
     pub groups: Vec<GroupModel>,
@@ -47,7 +48,7 @@ impl<'a> AppModel {
         };
     }
 
-    pub fn handle_enter(&self, state: &State) -> std::io::Result<Child> {
+    pub fn handle_enter(&self, state: &State) -> std::io::Result<()> {
         let selected_group_index = state.get_selected_group();
         let selected_list = &state.lists[selected_group_index];
         let selected_item_index = selected_list.get_selected();
@@ -56,8 +57,21 @@ impl<'a> AppModel {
 
         let selected_item_model = &self.groups[selected_group_index].items[global_index];
 
-        let param = selected_item_model.param.as_str();
+        let mut cwd = env::current_exe().unwrap();
+        cwd.pop();
+        cwd.push("launcher");
 
-        Command::new(&self.command_template).arg(param).spawn()
+        let child_result = Command::new(cwd)
+            .arg(&self.command_template)
+            .arg(&selected_item_model.param)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn();
+
+        if let Err(error) = child_result {
+            return Err(error);
+        }
+
+        Ok(())
     }
 }
