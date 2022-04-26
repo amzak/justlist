@@ -1,6 +1,9 @@
+use atty::Stream;
+use serde::de::Deserialize;
 use shared::serialization::*;
 use std::env;
 use std::ffi::OsStr;
+use std::io::BufReader;
 use std::path::PathBuf;
 use structopt::StructOpt;
 use walkdir::WalkDir;
@@ -25,10 +28,15 @@ fn main() -> std::io::Result<()> {
     let working_dir = options.working_dir.unwrap_or(env::current_dir().unwrap());
     let depth = options.depth;
 
-    let mut list = ListWithGroups {
-        groups: vec![],
-        command_template: options.command_template,
-    };
+    let stdin = std::io::stdin();
+    let handle = stdin.lock();
+    let reader = BufReader::new(handle);
+
+    let mut groups: Groups = Groups { groups: vec![] };
+    if atty::isnt(Stream::Stdin) {
+        let mut de = serde_json::Deserializer::from_reader(reader);
+        groups = Groups::deserialize(&mut de).unwrap();
+    }
 
     let title = if options.title.is_some() {
         options.title.unwrap()
@@ -36,9 +44,10 @@ fn main() -> std::io::Result<()> {
         "files".to_string()
     };
 
-    let mut group = Group {
+    let mut group = ListGroup {
         label: title,
         items: vec![],
+        command_template: options.command_template,
     };
 
     for item in WalkDir::new(&working_dir).max_depth(depth as usize) {
@@ -75,12 +84,12 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    list.groups.push(group);
+    groups.groups.push(group);
 
     let stdout = std::io::stdout();
     let stdout_handle = stdout.lock();
     let writer = std::io::BufWriter::new(stdout_handle);
-    serde_json::to_writer(writer, &list)?;
+    serde_json::to_writer(writer, &groups)?;
 
     Ok(())
 }

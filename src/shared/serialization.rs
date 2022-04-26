@@ -7,13 +7,13 @@ pub struct SelectableItem {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Group {
+pub struct ListGroup {
     pub label: String,
     pub items: Vec<SelectableItem>,
+    pub command_template: String,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ListWithGroups {
-    pub groups: Vec<Group>,
-    pub command_template: String,
+pub struct Groups {
+    pub groups: Vec<ListGroup>,
 }

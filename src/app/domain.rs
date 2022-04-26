@@ -7,4 +7,5 @@ pub struct SelectableItemModel {
 pub struct GroupModel {
     pub label: String,
     pub items: Vec<SelectableItemModel>,
+    pub command_template: String,
 }

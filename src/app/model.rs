@@ -1,14 +1,13 @@
 use super::domain::{GroupModel, SelectableItemModel};
 use crate::State;
 use serde::Deserialize;
-use shared::serialization::ListWithGroups;
+use shared::serialization::Groups;
 use std::env;
 use std::process::Command;
 use std::process::Stdio;
 
 pub struct AppModel {
     pub groups: Vec<GroupModel>,
-    pub command_template: String,
 }
 
 impl<'a> AppModel {
@@ -17,30 +16,34 @@ impl<'a> AppModel {
         R: std::io::Read,
     {
         let mut de = serde_json::Deserializer::from_reader(reader);
-        let data = ListWithGroups::deserialize(&mut de);
+        let data = Groups::deserialize(&mut de);
 
         match data {
             Ok(content) => {
-                return AppModel {
-                    groups: content
-                        .groups
-                        .iter()
-                        .map(|x| GroupModel {
-                            label: x.label.clone(),
-                            items: x
-                                .items
-                                .iter()
-                                .enumerate()
-                                .map(|(index, x)| SelectableItemModel {
-                                    label: x.label.to_lowercase(),
-                                    param: x.param.clone(),
-                                    index: index,
-                                })
-                                .collect(),
-                        })
-                        .collect(),
-                    command_template: content.command_template,
+                let model_groups = content
+                    .groups
+                    .iter()
+                    .map(|group| GroupModel {
+                        label: group.label.clone(),
+                        command_template: group.command_template.clone(),
+                        items: group
+                            .items
+                            .iter()
+                            .enumerate()
+                            .map(|(index, x)| SelectableItemModel {
+                                label: x.label.to_lowercase(),
+                                param: x.param.clone(),
+                                index: index,
+                            })
+                            .collect(),
+                    })
+                    .collect();
+
+                let model = AppModel {
+                    groups: model_groups,
                 };
+
+                return model;
             }
             Err(e) => {
                 panic!("can't read json state: {}", e.to_string());
@@ -55,14 +58,15 @@ impl<'a> AppModel {
 
         let global_index = state.get_by_local_index(selected_item_index);
 
-        let selected_item_model = &self.groups[selected_group_index].items[global_index];
+        let group = &self.groups[selected_group_index];
+        let selected_item_model = &group.items[global_index];
 
         let mut cwd = env::current_exe().unwrap();
         cwd.pop();
         cwd.push("launcher");
 
         let child_result = Command::new(cwd)
-            .arg(&self.command_template)
+            .arg(&group.command_template)
             .arg(&selected_item_model.param)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
