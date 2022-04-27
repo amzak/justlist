@@ -38,7 +38,7 @@ jobs:
     - name: Zip artifacts
       uses: papeloto/action-zip@v1
       with:
-        files: target/release/justlist target/release/search
+        files: target/release/justlist target/release/search target/release/launcher
         dest: release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
