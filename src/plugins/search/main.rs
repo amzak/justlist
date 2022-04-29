@@ -10,7 +10,7 @@ use walkdir::WalkDir;
 
 #[derive(Debug, StructOpt)]
 struct Options {
-    extension: String,
+    query: String,
     command_template: String,
     #[structopt(long, short)]
     verbose: bool,
@@ -71,7 +71,7 @@ fn main() -> std::io::Result<()> {
         }
 
         let ext = extension.unwrap();
-        let filter_ext = OsStr::new(&options.extension);
+        let filter_ext = OsStr::new(&options.query);
 
         if filter_ext == ext {
             let file_name = path.file_name().unwrap();
