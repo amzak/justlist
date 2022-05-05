@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::process::Stdio;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -14,5 +15,10 @@ fn main() {
     let command = options.command;
     let argument = options.argument;
 
-    Command::new(&command).arg(argument).spawn().unwrap();
+    Command::new(&command)
+        .arg(argument)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
 }

@@ -3,6 +3,7 @@ use crate::State;
 use serde::Deserialize;
 use shared::serialization::Groups;
 use std::env;
+use std::io::{self, Write};
 use std::process::Command;
 use std::process::Stdio;
 
@@ -68,12 +69,15 @@ impl<'a> AppModel {
         let child_result = Command::new(cwd)
             .arg(&group.command_template)
             .arg(&selected_item_model.param)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn();
+            .output();
 
-        if let Err(error) = child_result {
-            return Err(error);
+        match child_result {
+            Err(error) => return Err(error),
+            Ok(output) => {
+                println!("status: {}", output.status);
+                io::stdout().write_all(&output.stdout).unwrap();
+                io::stderr().write_all(&output.stderr).unwrap();
+            }
         }
 
         Ok(())
