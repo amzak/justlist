@@ -16,6 +16,10 @@ path = "src/plugins/search/main.rs"
 name = "launcher"
 path = "src/plugins/launcher/main.rs"
 
+[[bin]]
+name = "git-repo"
+path = "src/plugins/git-repo/main.rs"
+
 [lib]
 name = "shared"
 path = "src/shared/mod.rs"
