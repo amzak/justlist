@@ -219,8 +219,8 @@
                     "label": "state.rs",
                     "param": "/home/amzak/projects/rust/justlist/src/app/state.rs"
                 }
-            ]
+            ],
+            "command_template": "xed"
         }
-    ],
-    "command_template": "xed"
+    ]
 }
