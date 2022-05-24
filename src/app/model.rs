@@ -1,11 +1,9 @@
 use super::domain::{GroupModel, SelectableItemModel};
+use crate::app::domain::LaunchModel;
 use crate::State;
 use serde::Deserialize;
 use shared::serialization::Groups;
 use std::env;
-use std::io::{self, Write};
-use std::process::Command;
-use std::process::Stdio;
 
 pub struct AppModel {
     pub groups: Vec<GroupModel>,
@@ -52,7 +50,7 @@ impl<'a> AppModel {
         };
     }
 
-    pub fn handle_enter(&self, state: &State) -> std::io::Result<()> {
+    pub fn handle_enter(&self, state: &State) -> LaunchModel {
         let selected_group_index = state.get_selected_group();
         let selected_list = &state.lists[selected_group_index];
         let selected_item_index = selected_list.get_selected();
@@ -66,20 +64,11 @@ impl<'a> AppModel {
         cwd.pop();
         cwd.push("launcher");
 
-        let child_result = Command::new(cwd)
-            .arg(&group.command_template)
-            .arg(&selected_item_model.param)
-            .output();
+        let launch = LaunchModel {
+            executable: Some(group.command_template.clone()),
+            param: Some(selected_item_model.param.clone()),
+        };
 
-        match child_result {
-            Err(error) => return Err(error),
-            Ok(output) => {
-                println!("status: {}", output.status);
-                io::stdout().write_all(&output.stdout).unwrap();
-                io::stderr().write_all(&output.stderr).unwrap();
-            }
-        }
-
-        Ok(())
+        launch
     }
 }

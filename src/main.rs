@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate lazy_static;
 
+use crate::app::domain::LaunchModel;
 use crate::terminal::TerminalState;
 use crossterm::event::{self, Event, KeyCode};
-use std::io::{Error, ErrorKind};
 
 use std::io::BufReader;
 use structopt::StructOpt;
@@ -19,6 +19,10 @@ use tui::{
 
 use std::fs::File;
 use std::path::PathBuf;
+
+use std::env;
+use std::io::{self, Write};
+use std::process::Command;
 
 mod app;
 use app::{
@@ -57,29 +61,66 @@ fn main() -> std::io::Result<()> {
     let options = Options::from_args();
     let app = read_app_model(options);
 
-    _main(app);
+    let result = _main(app);
 
+    match result {
+        Ok(launch) => {
+            execute_launch(launch);
+        }
+        Err(error) => {
+            print!("{}", error);
+        }
+    }
     Ok(())
 }
 
-fn _main(app: AppModel) {
+fn execute_launch(launch: LaunchModel) {
+    if launch.executable.is_none() {
+        return;
+    }
+
+    let mut launcher_command = env::current_exe().unwrap();
+    launcher_command.pop();
+    launcher_command.push("launcher");
+
+    let LaunchModel { executable, param } = launch;
+
+    let mut cmd = Command::new(launcher_command);
+    cmd.arg(executable.unwrap());
+
+    if let Some(param) = param {
+        cmd.arg(param);
+    }
+
+    let child_result = cmd.output();
+
+    match child_result {
+        Err(error) => print!("{}", error.to_string()),
+        Ok(output) => {
+            println!("status: {}", output.status);
+            io::stdout().write_all(&output.stdout).unwrap();
+            io::stderr().write_all(&output.stderr).unwrap();
+        }
+    }
+}
+
+fn _main(app: AppModel) -> io::Result<LaunchModel> {
     let mut terminal_state = TerminalState::new();
     let state = State::new(&app.groups);
-    let result = run_app(&mut terminal_state.terminal, app, state).unwrap();
-    terminal_state.output(&result);
+    return run_app(&mut terminal_state.terminal, app, state);
 }
 
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     app: AppModel,
     mut state: State,
-) -> std::io::Result<String> {
+) -> std::io::Result<LaunchModel> {
     loop {
         Terminal::draw(terminal, |f: &mut tui::Frame<B>| ui(f, &app, &mut state))?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {
-                KeyCode::Char('q') => return Ok(String::from("OK.")),
+                KeyCode::Char('q') => return Ok(LaunchModel::default()),
                 KeyCode::Left => state.groups.next(),
                 KeyCode::Right => state.groups.previous(),
                 KeyCode::Down => state.select_item_next(),
@@ -88,13 +129,10 @@ fn run_app<B: Backend>(
                 KeyCode::Backspace => state.handle_backspace(),
                 KeyCode::Esc => state.handle_escape(),
                 KeyCode::Enter => {
-                    if let Err(error) = app.handle_enter(&state) {
-                        let err = Error::new(ErrorKind::Other, error);
-                        return Err(err);
-                    }
-                    return Ok(String::from("OK."));
+                    let launch = app.handle_enter(&state);
+                    return Ok(launch);
                 }
-                _ => return Ok(String::from("OK.")),
+                _ => return Ok(LaunchModel::default()),
             }
         }
     }
