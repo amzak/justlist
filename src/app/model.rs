@@ -25,6 +25,7 @@ impl<'a> AppModel {
                     .map(|group| GroupModel {
                         label: group.label.clone(),
                         command_template: group.command_template.clone(),
+                        is_terminal: group.is_terminal,
                         items: group
                             .items
                             .iter()
@@ -67,6 +68,7 @@ impl<'a> AppModel {
         let launch = LaunchModel {
             executable: Some(group.command_template.clone()),
             param: Some(selected_item_model.param.clone()),
+            is_terminal: group.is_terminal,
         };
 
         launch

@@ -5,7 +5,7 @@ use crate::app::domain::LaunchModel;
 use crate::terminal::TerminalState;
 use crossterm::event::{self, Event, KeyCode};
 
-use std::io::BufReader;
+use std::{io::BufReader, process::Output};
 use structopt::StructOpt;
 
 use tui::{
@@ -25,10 +25,7 @@ use std::io::{self, Write};
 use std::process::Command;
 
 mod app;
-use app::{
-    domain::GroupModel, domain::SelectableItemModel, model::AppModel, state::State,
-    stateful::StatefulList,
-};
+use app::{domain::GroupModel, model::AppModel, state::State, stateful::StatefulList};
 
 mod terminal;
 
@@ -79,20 +76,17 @@ fn execute_launch(launch: LaunchModel) {
         return;
     }
 
-    let mut launcher_command = env::current_exe().unwrap();
-    launcher_command.pop();
-    launcher_command.push("launcher");
+    let LaunchModel {
+        executable,
+        param,
+        is_terminal,
+    } = launch;
 
-    let LaunchModel { executable, param } = launch;
-
-    let mut cmd = Command::new(launcher_command);
-    cmd.arg(executable.unwrap());
-
-    if let Some(param) = param {
-        cmd.arg(param);
-    }
-
-    let child_result = cmd.output();
+    let child_result = if is_terminal {
+        launch_inplace(&executable.unwrap(), &param.unwrap())
+    } else {
+        launch_external(&executable.unwrap(), &param.unwrap())
+    };
 
     match child_result {
         Err(error) => print!("{}", error.to_string()),
@@ -102,6 +96,18 @@ fn execute_launch(launch: LaunchModel) {
             io::stderr().write_all(&output.stderr).unwrap();
         }
     }
+}
+
+fn launch_inplace(exec: &str, param: &str) -> io::Result<Output> {
+    Command::new(exec).arg(param).output()
+}
+
+fn launch_external(exec: &str, param: &str) -> io::Result<Output> {
+    let mut launcher_command = env::current_exe().unwrap();
+    launcher_command.pop();
+    launcher_command.push("launcher");
+
+    Command::new(launcher_command).arg(exec).arg(param).output()
 }
 
 fn _main(app: AppModel) -> io::Result<LaunchModel> {

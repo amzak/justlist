@@ -8,6 +8,7 @@ use structopt::StructOpt;
 use walkdir::WalkDir;
 
 #[derive(Debug, StructOpt)]
+#[structopt(about = "This plugin searches git repos by looking for .git folder")]
 struct Options {
     command_template: String,
     #[structopt(long, short, default_value = "1")]
@@ -16,6 +17,12 @@ struct Options {
     working_dir: Option<PathBuf>,
     #[structopt(long, short)]
     verbose: bool,
+    #[structopt(
+        long = "terminal",
+        short = "t",
+        help = "This flag should indicate, that the app runs in a terminal"
+    )]
+    is_terminal: bool,
 }
 
 fn is_git_repo(path: &Path) -> bool {
@@ -45,6 +52,7 @@ fn main() -> std::io::Result<()> {
         label: "git repos".to_string(),
         items: vec![],
         command_template: options.command_template,
+        is_terminal: options.is_terminal,
     };
 
     for item in WalkDir::new(&working_dir).max_depth(depth as usize) {

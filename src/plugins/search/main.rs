@@ -49,8 +49,14 @@ struct Options {
     depth: u8,
     #[structopt(long, short, parse(from_os_str))]
     working_dir: Option<PathBuf>,
-    #[structopt(long, short)]
+    #[structopt(long)]
     title: Option<String>,
+    #[structopt(
+        long = "terminal",
+        short = "t",
+        help = "This flag should indicate, that the app runs in a terminal"
+    )]
+    is_terminal: bool,
 }
 
 fn is_match(query: &str, path: &Path, query_flags: &QueryFlags) -> bool {
@@ -102,6 +108,7 @@ fn main() -> std::io::Result<()> {
         label: title,
         items: vec![],
         command_template: options.command_template,
+        is_terminal: options.is_terminal,
     };
 
     for item in WalkDir::new(&working_dir).max_depth(depth as usize) {
