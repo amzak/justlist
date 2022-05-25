@@ -7,8 +7,8 @@ pub struct SelectableItemModel {
 pub struct GroupModel {
     pub label: String,
     pub items: Vec<SelectableItemModel>,
-    pub command_template: String,
-    pub is_terminal: bool,
+    pub command_template: Option<String>,
+    pub is_terminal: Option<bool>,
 }
 
 pub struct LaunchModel {

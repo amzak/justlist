@@ -2,7 +2,6 @@ use atty::Stream;
 use serde::de::Deserialize;
 use shared::serialization::*;
 use std::env;
-use std::ffi::OsStr;
 use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
@@ -107,8 +106,8 @@ fn main() -> std::io::Result<()> {
     let mut group = ListGroup {
         label: title,
         items: vec![],
-        command_template: options.command_template,
-        is_terminal: options.is_terminal,
+        command_template: Some(options.command_template),
+        is_terminal: Some(options.is_terminal),
     };
 
     for item in WalkDir::new(&working_dir).max_depth(depth as usize) {

@@ -66,9 +66,9 @@ impl<'a> AppModel {
         cwd.push("launcher");
 
         let launch = LaunchModel {
-            executable: Some(group.command_template.clone()),
+            executable: group.command_template.clone(),
             param: Some(selected_item_model.param.clone()),
-            is_terminal: group.is_terminal,
+            is_terminal: group.is_terminal.unwrap_or(false),
         };
 
         launch

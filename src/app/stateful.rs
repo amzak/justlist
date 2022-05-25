@@ -20,7 +20,7 @@ impl StatefulList {
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.len - 1 {
+                if i == self.len - 1 {
                     0
                 } else {
                     i + 1

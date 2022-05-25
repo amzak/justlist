@@ -15,7 +15,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        target: [ "linux-x64", "win-x64" ]
+        target: [ "linux-x64" ]
     steps:
     - uses: actions/checkout@v2
     - name: Git semver
@@ -38,7 +38,7 @@ jobs:
     - name: Zip artifacts
       uses: papeloto/action-zip@v1
       with:
-        files: target/release/justlist target/release/search target/release/launcher
+        files: target/release/justlist target/release/search target/release/launcher target/release/git-repo target/release/bookmarks
         dest: release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
     - name: Upload artifacts
       uses: actions/upload-artifact@v2

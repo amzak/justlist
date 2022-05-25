@@ -20,6 +20,10 @@ path = "src/plugins/launcher/main.rs"
 name = "git-repo"
 path = "src/plugins/git-repo/main.rs"
 
+[[bin]]
+name = "bookmarks"
+path = "src/plugins/bookmarks/main.rs"
+
 [lib]
 name = "shared"
 path = "src/shared/mod.rs"
@@ -37,3 +41,4 @@ structopt = "*"
 walkdir = "*"
 nix = "*"
 atty = "*"
+attohttpc = { version = "0.19.1", features = ["charsets"] }

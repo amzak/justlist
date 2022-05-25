@@ -10,8 +10,8 @@ pub struct SelectableItem {
 pub struct ListGroup {
     pub label: String,
     pub items: Vec<SelectableItem>,
-    pub command_template: String,
-    pub is_terminal: bool,
+    pub command_template: Option<String>,
+    pub is_terminal: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]

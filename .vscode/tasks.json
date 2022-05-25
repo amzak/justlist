@@ -3,7 +3,6 @@
 	"tasks": [
 		{
 			"type": "cargo",
-			"subcommand": "build",
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -13,7 +12,7 @@
 		{
 			"type": "shell",
 			"label": "build&deploy [Debug]",
-			"command": "cargo build && cp -u ./target/debug/justlist ~/tools/justlist && cp -u ./target/debug/launcher ~/tools/justlist && cp -u ./target/debug/search ~/tools/justlist && cp -u ./target/debug/git-repo ~/tools/justlist",
+			"command": "cargo build && cp -u ./target/debug/justlist ~/tools/justlist && cp -u ./target/debug/launcher ~/tools/justlist && cp -u ./target/debug/search ~/tools/justlist && cp -u ./target/debug/git-repo ~/tools/justlist && cp -u ./target/debug/bookmarks ~/tools/justlist",
 			"group": "build"
 		},
 	]
