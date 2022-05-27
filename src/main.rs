@@ -5,7 +5,7 @@ use crate::app::domain::LaunchModel;
 use crate::terminal::TerminalState;
 use crossterm::event::{self, Event, KeyCode};
 
-use std::{io::BufReader, process::Output};
+use std::{env::consts::FAMILY, io::BufReader, process::Output};
 use structopt::StructOpt;
 
 use tui::{
@@ -82,6 +82,11 @@ fn execute_launch(launch: LaunchModel) {
         is_terminal,
     } = launch;
 
+    if FAMILY == "windows" {
+        launch_windows(&executable.unwrap(), &param.unwrap());
+        return;
+    }
+
     let child_result = if is_terminal {
         launch_inplace(&executable.unwrap(), &param.unwrap())
     } else {
@@ -96,6 +101,10 @@ fn execute_launch(launch: LaunchModel) {
             io::stderr().write_all(&output.stderr).unwrap();
         }
     }
+}
+
+fn launch_windows(exec: &str, param: &str) {
+    Command::new(exec).arg(param).spawn();
 }
 
 fn launch_inplace(exec: &str, param: &str) -> io::Result<Output> {

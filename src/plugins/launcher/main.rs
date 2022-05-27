@@ -1,3 +1,4 @@
+use std::env;
 use std::process::Command;
 use std::process::Stdio;
 use structopt::StructOpt;
@@ -9,7 +10,10 @@ struct Options {
 }
 
 fn main() {
-    nix::unistd::setsid().unwrap();
+    if env::consts::FAMILY == "unix" {
+        nix::unistd::setsid().unwrap();
+    }
+
     let options = Options::from_args();
 
     let command = options.command;
