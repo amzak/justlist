@@ -11,12 +11,16 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 1
       matrix:
-        target: [ "linux-x64" ]
+        os: [ubuntu-latest, windows-latest]
+        rust: [stable]
     steps:
+    - uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: ${{ matrix.rust }}
     - uses: actions/checkout@v2
     - name: Git semver
       uses: paulhatch/semantic-version@v4.0.3
