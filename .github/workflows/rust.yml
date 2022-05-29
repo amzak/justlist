@@ -39,24 +39,31 @@ jobs:
       run: cargo build --verbose --release
     - name: Run tests
       run: cargo test --verbose
-    - name: Zip artifacts
+    - name: Zip artifacts linux
       uses: papeloto/action-zip@v1
+      if: contains(matrix.os, 'ubuntu')
       with:
         files: target/release/justlist target/release/search target/release/launcher target/release/git-repo target/release/bookmarks
-        dest: release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
+        dest: 'release_${{matrix.os}}_${{steps.semver.outputs.version}}.zip'
+    - name: Zip artifacts windows
+      uses: papeloto/action-zip@v1
+      if: contains(matrix.os, 'windows')
+      with:
+        files: target/release/justlist.exe target/release/search.exe target/release/launcher.exe target/release/git-repo.exe target/release/bookmarks.exe
+        dest: 'release_${{matrix.os}}_${{steps.semver.outputs.version}}.zip'
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: release_${{matrix.target}}
+        name: release_${{matrix.os}}
         path: |
-          release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
+          release_${{matrix.os}}_${{steps.semver.outputs.version}}.zip
         if-no-files-found: error
     - name: Release
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest_${{matrix.target}}"
+        automatic_release_tag: "latest_${{matrix.os}}"
         prerelease: true
         title: "Development Build"
         files: |
-          release_${{matrix.target}}_${{steps.semver.outputs.version}}.zip
+          release_${{matrix.os}}_${{steps.semver.outputs.version}}.zip
