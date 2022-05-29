@@ -9,10 +9,16 @@ struct Options {
     argument: String,
 }
 
+#[cfg(target_family = "unix")]
+fn setsid() {
+    nix::unistd::setsid().unwrap();
+}
+
+#[cfg(target_family = "windows")]
+fn setsid() {}
+
 fn main() {
-    if env::consts::FAMILY == "unix" {
-        nix::unistd::setsid().unwrap();
-    }
+    setsid();
 
     let options = Options::from_args();
 
