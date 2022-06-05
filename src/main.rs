@@ -135,14 +135,19 @@ fn run_app<B: Backend>(
 
         if let Event::Key(key) = event::read()? {
             match key.code {
-                KeyCode::Char('q') => return Ok(LaunchModel::default()),
                 KeyCode::Left => state.groups.previous(),
                 KeyCode::Right => state.groups.next(),
                 KeyCode::Down => state.select_item_next(),
                 KeyCode::Up => state.select_item_prev(),
                 KeyCode::Char(c) => state.handle_char(c),
                 KeyCode::Backspace => state.handle_backspace(),
-                KeyCode::Esc => state.handle_escape(),
+                KeyCode::Esc => {
+                    if state.is_empty() {
+                        return Ok(LaunchModel::default());
+                    }
+
+                    state.handle_escape();
+                }
                 KeyCode::Enter => {
                     let launch = app.handle_enter(&state);
                     return Ok(launch);

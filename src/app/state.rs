@@ -69,4 +69,8 @@ impl State {
     pub fn get_by_local_index(&self, index_local: usize) -> usize {
         self.index_map[&index_local]
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.input.len() > 0
+    }
 }
