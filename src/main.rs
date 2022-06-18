@@ -196,7 +196,7 @@ fn render_tabs<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, 
         .collect();
     let tabs = Tabs::new(groups)
         .select(state.get_selected_group())
-        .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+        .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
     f.render_widget(tabs, chunk);
 }
 
