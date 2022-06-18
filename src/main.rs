@@ -10,7 +10,7 @@ use structopt::StructOpt;
 
 use tui::{
     backend::Backend,
-    layout::{Constraint, Corner, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Corner, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{List, ListItem, Paragraph, Tabs},
@@ -166,6 +166,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State) {
                 Constraint::Length(1),
                 Constraint::Length(1),
                 Constraint::Min(1),
+                Constraint::Length(1),
             ]
             .as_ref(),
         )
@@ -174,6 +175,12 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State) {
     render_tabs(f, app, state, chunks[0]);
     render_input(f, state, chunks[1]);
     render_list(f, app, state, chunks[2]);
+    render_prompt(f, chunks[3]);
+}
+
+fn render_prompt<B: Backend>(f: &mut Frame<B>, chunk: Rect) {
+    let text = Paragraph::new(Spans::from("Esc to exit")).alignment(Alignment::Left);
+    f.render_widget(text, chunk);
 }
 
 fn render_tabs<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State, chunk: Rect) {
