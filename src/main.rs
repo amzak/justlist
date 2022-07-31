@@ -82,15 +82,18 @@ fn execute_launch(launch: LaunchModel) {
         is_terminal,
     } = launch;
 
+    let executable = &executable.unwrap();
+    let param = &param.unwrap();
+
     if FAMILY == "windows" {
-        launch_windows(&executable.unwrap(), &param.unwrap());
+        launch_windows(executable, param);
         return;
     }
 
     let child_result = if is_terminal {
-        launch_inplace(&executable.unwrap(), &param.unwrap())
+        launch_inplace(executable, param)
     } else {
-        launch_external(&executable.unwrap(), &param.unwrap())
+        launch_external(executable, param)
     };
 
     match child_result {
@@ -104,11 +107,26 @@ fn execute_launch(launch: LaunchModel) {
 }
 
 fn launch_windows(exec: &str, param: &str) {
-    Command::new(exec).arg(param).spawn();
+    prepare_command(exec).arg(param).spawn();
 }
 
 fn launch_inplace(exec: &str, param: &str) -> io::Result<Output> {
-    Command::new(exec).arg(param).output()
+    prepare_command(exec).arg(param).output()
+}
+
+fn prepare_command(exec: &str) -> Command {
+    let mut parts = exec.split_whitespace();
+
+    let first = parts.next();
+    let first_part = first.unwrap();
+
+    let mut cmd = Command::new(first_part);
+
+    for part in parts {
+        cmd.arg(part);
+    }
+
+    cmd
 }
 
 fn launch_external(exec: &str, param: &str) -> io::Result<Output> {
@@ -116,7 +134,9 @@ fn launch_external(exec: &str, param: &str) -> io::Result<Output> {
     launcher_command.pop();
     launcher_command.push("launcher");
 
-    Command::new(launcher_command).arg(exec).arg(param).output()
+    let formatted = format!("{exec} {param}");
+
+    Command::new(launcher_command).arg(formatted).output()
 }
 
 fn _main(app: AppModel) -> io::Result<LaunchModel> {

@@ -1,4 +1,3 @@
-use std::env;
 use std::process::Command;
 use std::process::Stdio;
 use structopt::StructOpt;
@@ -6,7 +5,6 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 struct Options {
     command: String,
-    argument: String,
 }
 
 #[cfg(target_family = "unix")]
@@ -22,12 +20,23 @@ fn main() {
 
     let options = Options::from_args();
 
-    let command = options.command;
-    let argument = options.argument;
+    let mut parts = options.command.split_whitespace();
 
-    Command::new(&command)
-        .arg(argument)
-        .stdout(Stdio::piped())
+    let first = parts.next();
+
+    if first.is_none() {
+        return;
+    }
+
+    let first_part = first.unwrap();
+
+    let mut cmd = Command::new(first_part);
+
+    for part in parts {
+        cmd.arg(part);
+    }
+
+    cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
