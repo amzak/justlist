@@ -71,6 +71,6 @@ impl State {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.input.len() > 0
+        self.input.len() == 0
     }
 }
