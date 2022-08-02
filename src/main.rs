@@ -185,7 +185,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &AppModel, state: &mut State) {
             [
                 Constraint::Length(1),
                 Constraint::Length(1),
-                Constraint::Min(1),
+                Constraint::Min(5),
                 Constraint::Length(1),
             ]
             .as_ref(),
