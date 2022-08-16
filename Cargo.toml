@@ -24,6 +24,10 @@ path = "src/plugins/git-repo/main.rs"
 name = "bookmarks"
 path = "src/plugins/bookmarks/main.rs"
 
+[[bin]]
+name = "bb-prs"
+path = "src/plugins/bb-prs/main.rs"
+
 [lib]
 name = "shared"
 path = "src/shared/mod.rs"
