@@ -43,13 +43,13 @@ jobs:
       uses: papeloto/action-zip@v1
       if: contains(matrix.os, 'ubuntu')
       with:
-        files: target/release/justlist target/release/search target/release/launcher target/release/git-repo target/release/bookmarks
+        files: target/release/justlist target/release/search target/release/launcher target/release/git-repo target/release/bookmarks target/release/bb-prs
         dest: 'release_${{matrix.os}}_${{steps.semver.outputs.version}}.zip'
     - name: Zip artifacts windows
       uses: papeloto/action-zip@v1
       if: contains(matrix.os, 'windows')
       with:
-        files: target/release/justlist.exe target/release/search.exe target/release/launcher.exe target/release/git-repo.exe target/release/bookmarks.exe
+        files: target/release/justlist.exe target/release/search.exe target/release/launcher.exe target/release/git-repo.exe target/release/bookmarks.exe target/release/bb-prs.exe
         dest: 'release_${{matrix.os}}_${{steps.semver.outputs.version}}.zip'
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
