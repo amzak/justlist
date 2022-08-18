@@ -22,6 +22,8 @@ jobs:
       with:
         rust-version: ${{ matrix.rust }}
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Git semver
       uses: paulhatch/semantic-version@v4.0.3
       id: semver
