@@ -2,7 +2,12 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 struct User {
-    name: String,
+    displayName: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Author {
+    user: User,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -22,6 +27,7 @@ pub struct PullRequest {
     pub title: String,
     pub state: String,
 
+    author: Author,
     links: LinkList,
 }
 
@@ -33,5 +39,9 @@ pub struct Response {
 impl PullRequest {
     pub fn link(&self) -> &str {
         return &self.links.selfs.first().unwrap().href;
+    }
+
+    pub fn author(&self) -> &str {
+        return &self.author.user.displayName;
     }
 }

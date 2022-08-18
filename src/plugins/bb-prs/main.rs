@@ -30,7 +30,7 @@ impl ListPullRequests {
         };
 
         for pull_request in prs.values.iter() {
-            let label = format!("[{}] {}", pull_request.state, pull_request.title);
+            let label = format!("[{}] {}", pull_request.author(), pull_request.title);
             group.items.push(SelectableItem {
                 label: label,
                 param: pull_request.link().to_string(),
