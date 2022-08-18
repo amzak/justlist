@@ -10,9 +10,9 @@ struct Options {
     command_template: String,
 }
 
-struct ListPullRequests {}
+struct Bookmarks {}
 
-impl ListPullRequests {
+impl Bookmarks {
     fn process_response(response: attohttpc::Response, command: &str) -> Groups {
         let reader = response.text_reader();
         let mut de = serde_json::Deserializer::from_reader(reader);
@@ -26,14 +26,14 @@ impl ListPullRequests {
     }
 }
 
-impl JustListAction<Options> for ListPullRequests {
+impl JustListAction<Options> for Bookmarks {
     fn execute(&self, groups: &mut Groups, options: &Options) {
         let result = attohttpc::get(&options.url).send();
 
         match result {
             Ok(response) => {
                 let mut received_groups =
-                    ListPullRequests::process_response(response, &options.command_template);
+                    Bookmarks::process_response(response, &options.command_template);
                 groups.groups.append(&mut received_groups.groups);
             }
             Err(err) => println!("{}", err),
@@ -46,6 +46,6 @@ fn main() -> std::io::Result<()> {
 
     let plugin = JustListPlugin::new(options);
 
-    let action = ListPullRequests {};
+    let action = Bookmarks {};
     plugin.main(&action)
 }
