@@ -1,8 +1,6 @@
-use atty::Stream;
-use serde::de::Deserialize;
+use shared::plugin::{JustListAction, JustListPlugin};
 use shared::serialization::*;
 use std::env;
-use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -40,7 +38,7 @@ fn parse_query_flags(s: &str) -> QueryFlags {
 struct Options {
     query: String,
     command_template: String,
-    #[structopt(short, parse(from_str = parse_query_flags))]
+    #[structopt(short, parse(from_str = parse_query_flags), help="n - for names, d - for directories, e - for extensions")]
     query_flags: QueryFlags,
     #[structopt(long, short)]
     verbose: bool,
@@ -56,6 +54,59 @@ struct Options {
         help = "This flag should indicate, that the app runs in a terminal"
     )]
     is_terminal: bool,
+}
+
+impl Options {
+    pub fn get_working_dir_or<'b, 'a: 'b>(&'a self, default: &'b PathBuf) -> &'b PathBuf {
+        self.working_dir.as_ref().unwrap_or(default)
+    }
+}
+
+struct Search {}
+
+impl JustListAction<Options> for Search {
+    fn execute(&self, groups: &mut Groups, options: &Options) {
+        let curr_dir = env::current_dir().unwrap();
+        let working_dir = options.get_working_dir_or(&curr_dir);
+        let depth = options.depth;
+
+        let title = if options.title.is_some() {
+            options.title.as_ref().unwrap()
+        } else {
+            "files"
+        };
+
+        let mut group = ListGroup {
+            label: title.to_string(),
+            items: vec![],
+            command_template: Some(options.command_template.to_string()),
+            is_terminal: Some(options.is_terminal),
+        };
+
+        for item in WalkDir::new(&working_dir).max_depth(depth as usize) {
+            if let Err(_error) = item {
+                if options.verbose {
+                    eprintln!("{}", _error);
+                }
+                continue;
+            }
+
+            let dir_item = item.unwrap();
+            let path = dir_item.path();
+
+            if is_match(&options.query, path, &options.query_flags) {
+                let file_name = path.file_name().unwrap();
+                let file_path = path.to_str().unwrap();
+
+                group.items.push(SelectableItem {
+                    label: String::from(file_name.to_str().unwrap()),
+                    param: String::from(file_path),
+                });
+            }
+        }
+
+        groups.groups.push(group);
+    }
 }
 
 fn is_match(query: &str, path: &Path, query_flags: &QueryFlags) -> bool {
@@ -84,60 +135,8 @@ fn is_match(query: &str, path: &Path, query_flags: &QueryFlags) -> bool {
 fn main() -> std::io::Result<()> {
     let options = Options::from_args();
 
-    let working_dir = options.working_dir.unwrap_or(env::current_dir().unwrap());
-    let depth = options.depth;
+    let plugin = JustListPlugin::new(options);
 
-    let stdin = std::io::stdin();
-    let handle = stdin.lock();
-    let reader = BufReader::new(handle);
-
-    let mut groups: Groups = Groups { groups: vec![] };
-    if atty::isnt(Stream::Stdin) {
-        let mut de = serde_json::Deserializer::from_reader(reader);
-        groups = Groups::deserialize(&mut de).unwrap();
-    }
-
-    let title = if options.title.is_some() {
-        options.title.unwrap()
-    } else {
-        "files".to_string()
-    };
-
-    let mut group = ListGroup {
-        label: title,
-        items: vec![],
-        command_template: Some(options.command_template),
-        is_terminal: Some(options.is_terminal),
-    };
-
-    for item in WalkDir::new(&working_dir).max_depth(depth as usize) {
-        if let Err(_error) = item {
-            if options.verbose {
-                eprintln!("{}", _error);
-            }
-            continue;
-        }
-
-        let dir_item = item.unwrap();
-        let path = dir_item.path();
-
-        if is_match(&options.query, path, &options.query_flags) {
-            let file_name = path.file_name().unwrap();
-            let file_path = path.to_str().unwrap();
-
-            group.items.push(SelectableItem {
-                label: String::from(file_name.to_str().unwrap()),
-                param: String::from(file_path),
-            })
-        }
-    }
-
-    groups.groups.push(group);
-
-    let stdout = std::io::stdout();
-    let stdout_handle = stdout.lock();
-    let writer = std::io::BufWriter::new(stdout_handle);
-    serde_json::to_writer(writer, &groups)?;
-
-    Ok(())
+    let action = Search {};
+    plugin.main(&action)
 }
