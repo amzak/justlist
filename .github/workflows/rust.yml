@@ -54,7 +54,7 @@ jobs:
         files: target/release/justlist.exe target/release/search.exe target/release/launcher.exe target/release/git-repo.exe target/release/bookmarks.exe target/release/bb-prs.exe
         dest: 'release_${{matrix.os}}_${{steps.semver.outputs.version}}.zip'
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: release_${{matrix.os}}
         path: |
