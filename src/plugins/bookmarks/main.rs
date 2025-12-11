@@ -5,8 +5,11 @@ use structopt::StructOpt;
 use shared::plugin::JustListPlugin;
 
 #[derive(Debug, StructOpt)]
+#[structopt(about = "This plugin gets bookmarks from a JSON file on web or on disk")]
 struct Options {
-    url: String,
+    path: String,
+    user: Option<String>,
+    password: Option<String>,
     command_template: String,
 }
 
@@ -28,7 +31,16 @@ impl Bookmarks {
 
 impl JustListAction<Options> for Bookmarks {
     fn execute(&self, groups: &mut Groups, options: &Options) {
-        let result = attohttpc::get(&options.url).send();
+        let mut request = attohttpc::get(&options.path);
+
+        let cred = options.user.as_ref()
+            .zip(options.password.as_ref());
+
+        if let Some((user, password)) = cred {
+            request = request.basic_auth(user, Some(password));
+        }
+
+        let result = request.send();
 
         match result {
             Ok(response) => {
