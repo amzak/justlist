@@ -5,10 +5,12 @@ use structopt::StructOpt;
 use shared::plugin::JustListPlugin;
 
 #[derive(Debug, StructOpt)]
-#[structopt(about = "This plugin gets bookmarks from a JSON file on web or on disk")]
+#[structopt(about = "This plugin gets bookmarks from a JSON file on web")]
 struct Options {
     path: String,
+    #[structopt(long, short = "u")]
     user: Option<String>,
+    #[structopt(long, short = "p")]
     password: Option<String>,
     command_template: String,
 }
